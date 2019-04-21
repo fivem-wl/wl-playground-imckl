@@ -34,6 +34,11 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         /// 任务时间
         /// </summary>
         public int Duration { get; set; }
+
+        /// <summary>
+        /// 任务描述
+        /// </summary>
+        public string Description { get; set; }
     }
 
     public struct MissionRangeInfo
@@ -232,17 +237,20 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
     public class CopClearGangzone : BaseScript
     {
 
+        public static string ResourceName = "CopClearGangzone";
+
         private List<MissionInfo> MissionsInfo;
         private MissionInstance MissionInstance;
 
+        
+
         private async Task<bool> CreateMission()
         {
-            
             MissionsInfo = new List<MissionInfo>()
             {
                 new MissionInfo()
                 {
-                    Duration = 1000 * 60 * 5,
+                    Duration = 1000 * 60 * 15,
                     PedsInfo = new List<MissionPedInfo>()
                     {
                         new MissionPedInfo()
@@ -396,12 +404,13 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                             Hash = (uint)WeaponHash.StunGun,
                             Ammo = 99,
                         },
-                    }
+                    },
+                    Description = "一群有~r~重火力的恐怖分子~s~占领了~y~天文台~s~, 为了维护世界和平, 请立即赶往~y~天文台~s~并协助警方制止他们!",
                 }
             };
 
             DestroyMission();
-            MissionInstance = new MissionInstance(1000 * 60 * 15);
+            MissionInstance = new MissionInstance(MissionsInfo[0].Duration);
 
             // 创建任务人物
             foreach(var pi in MissionsInfo[0].PedsInfo)
@@ -435,6 +444,10 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             Tick += MissionInstance.EveryFrameTickAsync;
 
             MissionInstance.OnStop += StopMission;
+
+            // 发出提醒
+            Notify.CustomImage("CHAR_CALL911", "CHAR_CALL911", MissionsInfo[0].Description, "LSPD", "制止区域暴乱", true, 2);
+            API.PlaySoundFrontend(-1, "Boss_Message_Orange", "GTAO_Boss_Goons_FM_Soundset", false);
 
             return true;
 
@@ -655,8 +668,25 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         public static RelationshipGroup CopGroup = World.AddRelationshipGroup("CopGroup");
         public static RelationshipGroup PlayerGroup = World.AddRelationshipGroup("PlayerGroup");
 
+        private static Menus.MainMenu MainMenu { get; set; }
+        private async Task ToggleMenuCheckAsync()
+        {
+            if (Game.PlayerPed.IsInPoliceVehicle && API.IsControlPressed(0, (int)Control.Context))
+            {
+                MainMenu?.GetMenu()?.OpenMenu();
+            }
+            await Delay(1000);
+        }
+
         public CopClearGangzone()
         {
+
+            MainMenu = new Menus.MainMenu();
+            MainMenu.CreateMenu();
+
+            EventHandlers.Add($"{ResourceName}:CreateMission", new Func<Task<bool>>(CreateMission));
+
+            Tick += ToggleMenuCheckAsync;
 
             Game.PlayerPed.RelationshipGroup = PlayerGroup;
 
@@ -733,24 +763,6 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                     scaleform.Render2D();
                     await Delay(0);
                 }
-            }), false);
-
-            API.RegisterCommand("mcreate", new Action<int, List<object>, string>(async (source, args, raw) =>
-            {
-                if (await CreateMission())
-                {
-                    API.SetPlayerWantedLevel(Game.Player.Handle, 5, false);
-                    API.SetPlayerWantedLevelNow(Game.Player.Handle, false);
-                }
-                else
-                {
-                    Debug.WriteLine("failed");
-                }
-            }), false);
-
-            API.RegisterCommand("mdestory", new Action<int, List<object>, string>((source, args, raw) =>
-            {
-                DestroyMission();
             }), false);
 
         }

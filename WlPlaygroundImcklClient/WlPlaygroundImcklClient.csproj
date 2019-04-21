@@ -54,6 +54,7 @@
     <Compile Include="Mission\CopClearGangzone\FatalDamgeEvents.cs" />
     <Compile Include="Mission\CopClearGangzone\GUI.cs" />
     <Compile Include="Mission\CopClearGangzone\Menus\MainMenu.cs" />
+    <Compile Include="Mission\CopClearGangzone\Notify.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
