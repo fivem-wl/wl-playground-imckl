@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{A7D72C1B-AA3A-4C6C-97B2-BEF276645A7F}</ProjectGuid>
+    <ProjectGuid>{306A778C-B2A3-4F4C-8505-CA470F581DE7}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>wl_playground_imckl</RootNamespace>
-    <AssemblyName>wl-playground-imckl</AssemblyName>
+    <RootNamespace>WlPlaygroundImcklClient</RootNamespace>
+    <AssemblyName>WlPlaygroundImcklClient.net</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -21,6 +21,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -31,8 +32,16 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="CitizenFX.Core.Client, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\CitizenFX.Core.Client.1.0.1188\lib\net45\CitizenFX.Core.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="MenuAPI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Lib\Client\MenuAPI.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -41,8 +50,30 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="Mission\CopClearGangzone\CopClearGangzone.cs" />
+    <Compile Include="Mission\CopClearGangzone\FatalDamgeEvents.cs" />
+    <Compile Include="Mission\CopClearGangzone\GUI.cs" />
+    <Compile Include="Mission\CopClearGangzone\Menus\MainMenu.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Lib\Server\libSQLite.Interop.so" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Extra\__resource.lua" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Lib\Shared\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Lib\Client\MenuAPI.dll" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy /Y "$(ProjectDir)\Extra\__resource.lua" "$(TargetDir)\"
+del "$(TargetDir)\CitizenFX.Core.Client.dll" /q
+del "$(TargetDir)\*.xml" /q
+del "$(TargetDir)\*.pdb" /q</PostBuildEvent>
+  </PropertyGroup>
 </Project>

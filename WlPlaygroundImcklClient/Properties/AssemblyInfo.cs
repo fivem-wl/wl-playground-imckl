@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // 有关程序集的一般信息由以下
 // 控制。更改这些特性值可修改
 // 与程序集关联的信息。
-[assembly: AssemblyTitle("wl-playground-imckl")]
+[assembly: AssemblyTitle("WlPlaygroundImcklClient")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("wl-playground-imckl")]
+[assembly: AssemblyProduct("WlPlaygroundImcklClient")]
 [assembly: AssemblyCopyright("Copyright ©  2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // 如果此项目向 COM 公开，则下列 GUID 用于类型库的 ID
-[assembly: Guid("a7d72c1b-aa3a-4c6c-97b2-bef276645a7f")]
+[assembly: Guid("306a778c-b2a3-4f4c-8505-ca470f581de7")]
 
 // 程序集的版本信息由下列四个值组成: 
 //
