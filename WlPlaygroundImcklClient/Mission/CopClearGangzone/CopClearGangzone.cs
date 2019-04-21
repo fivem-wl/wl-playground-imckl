@@ -219,7 +219,6 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                             ped.RelationshipGroup = CopClearGangzone.CopGroup;
                     }
                 }
-                Debug.WriteLine("set cop friendly");
             }
             
 
@@ -402,7 +401,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             };
 
             DestroyMission();
-            MissionInstance = new MissionInstance(1000 * 60 * 30);
+            MissionInstance = new MissionInstance(1000 * 60 * 15);
 
             // 创建任务人物
             foreach(var pi in MissionsInfo[0].PedsInfo)
@@ -502,10 +501,51 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 
         }
 
-        private void StopMission(string reason)
+        private async void StopMission(string reason)
         {
-            Debug.WriteLine(reason);
             DestroyMission();
+            await HintOnStopMission(reason);
+        }
+
+        private async Task HintOnStopMission(string reason)
+        {
+            var now = Game.GameTime;
+            Scaleform scaleform;
+            switch (reason)
+            {
+                case "finish":
+                    scaleform = new Scaleform("MP_BIG_MESSAGE_FREEMODE");
+                    while (!scaleform.IsLoaded)
+                    {
+                        await Delay(100);
+                    }
+                    scaleform.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", API.GetLabelText("BM_PASS"), "~y~评分: 100~s~", 5);
+                    API.PlaySoundFrontend(-1, "Mission_Pass_Notify", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", true);
+                    while (Game.GameTime - now <= 1000 * 15)
+                    {
+                        scaleform.Render2D();
+                        await Delay(0);
+                    }
+                    scaleform.Dispose();
+                    break;
+                case "dead":
+                case "timeup":
+                default:
+                    scaleform = new Scaleform("MP_BIG_MESSAGE_FREEMODE");
+                    while (!scaleform.IsLoaded)
+                    {
+                        await Delay(100);
+                    }
+                    scaleform.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", API.GetLabelText("REPLAY_T"), "~y~评分: 0~s~", 5);
+                    API.PlaySoundFrontend(-1, "MP_Flash", "WastedSounds", true);
+                    while (Game.GameTime - now <= 1000 * 8)
+                    {
+                        scaleform.Render2D();
+                        await Delay(0);
+                    }
+                    scaleform.Dispose();
+                    break;
+            }
         }
 
         private async Task<Ped> CreateMissionPed(MissionPedInfo pedInfo)
@@ -660,16 +700,15 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 
                 await Task.FromResult(0);
             }), false);
-
-            bool IsShowTest = false;
+            
             API.RegisterCommand("testshows", new Action<int, List<object>, string>(async (source, args, raw) =>
             {
+                var now = Game.GameTime;
                 Scaleform scaleform = new Scaleform("MP_BIG_MESSAGE_FREEMODE");
                 while (!scaleform.IsLoaded)
                 {
                     await Delay(100);
                 }
-                IsShowTest = true;
 
                 var labelText = "";
                 if (!(args.Count == 0 || string.IsNullOrEmpty(args[0].ToString())))
@@ -680,19 +719,13 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                 scaleform.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", API.GetLabelText(labelText), "~y~DONE~s~", 5);
                 //API.PlaySoundFrontend(-1, "UNDER_THE_BRIDGE", "HUD_AWARDS", true);
                 //API.PlaySoundFrontend(-1, "MP_Flash", "WastedSounds", true);
-                API.PlaySoundFrontend(-1, "Mission_Pass_Notify", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", true);
+                // API.PlaySoundFrontend(-1, "Mission_Pass_Notify", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", true);
                 // REPLAY_T => mission failed
-                while (IsShowTest)
+                while (Game.GameTime - now <= 1000 * 8)
                 {
                     scaleform.Render2D();
                     await Delay(0);
                 }
-            }), false);
-
-            API.RegisterCommand("testhides", new Action<int, List<object>, string>(async (source, args, raw) =>
-            {
-                IsShowTest = false;
-                await Task.FromResult(0);
             }), false);
 
             API.RegisterCommand("mcreate", new Action<int, List<object>, string>(async (source, args, raw) =>
