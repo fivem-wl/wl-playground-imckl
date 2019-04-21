@@ -83,9 +83,10 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone.Menus
 
             // 菜单叫出逻辑交由其它处理
             MenuController.EnableMenuToggleKeyOnController = false;
+            MenuController.MenuToggleKey = (Control)(-1);
 
             // 主菜单
-            Menu = new Menu("警民合作系统", "警民合作, 共建和谐社会");
+            Menu = new Menu("警察系统", "警民合作, 共建和谐社会");
             MissionMenu = new MissionMenu(this);
 
             MenuController.AddMenu(Menu);

@@ -250,15 +250,15 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             {
                 new MissionInfo()
                 {
-                    Duration = 1000 * 60 * 15,
+                    Duration = 1000 * 60 * 10,
                     PedsInfo = new List<MissionPedInfo>()
                     {
                         new MissionPedInfo()
                         {
-                            PedHash = PedHash.Acult01AMM,
+                            PedHash = PedHash.RsRanger01AMO,
                             Accuracy = 20,
                             Health = 1000,
-                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
+                            Position = new Vector3(-436f, 1128f, 332f),
                             IsHeadshotImmute = true,
                             IsWanderAround = true,
                             WanderRange = 10f,
@@ -266,17 +266,17 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                             {
                                 new MissionWeaponInfo()
                                 {
-                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
+                                    Hash = (uint)WeaponHash.GrenadeLauncher,
                                     Ammo = 300,
                                 },
                             }
                         },
                         new MissionPedInfo()
                         {
-                            PedHash = PedHash.Acult01AMM,
-                            Accuracy = 20,
+                            PedHash = PedHash.JohnnyKlebitz,
+                            Accuracy = 100,
                             Health = 1000,
-                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
+                            Position = new Vector3(-436f, 1128f, 332f),
                             IsHeadshotImmute = true,
                             IsWanderAround = true,
                             WanderRange = 10f,
@@ -284,17 +284,55 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                             {
                                 new MissionWeaponInfo()
                                 {
-                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
+                                    Hash = (uint)WeaponHash.SniperRifle,
                                     Ammo = 300,
                                 },
                             }
                         },
+
+                        //new MissionPedInfo()
+                        //{
+                        //    PedHash = PedHash.RsRanger01AMO,
+                        //    Accuracy = 20,
+                        //    Health = 1000,
+                        //    Position = new Vector3(-420f, 1108f, 332f),
+                        //    IsHeadshotImmute = true,
+                        //    IsWanderAround = true,
+                        //    WanderRange = 10f,
+                        //    Weapons = new List<MissionWeaponInfo>()
+                        //    {
+                        //        new MissionWeaponInfo()
+                        //        {
+                        //            Hash = (uint)WeaponHash.GrenadeLauncher,
+                        //            Ammo = 300,
+                        //        },
+                        //    }
+                        //},
                         new MissionPedInfo()
                         {
-                            PedHash = PedHash.MovAlien01,
-                            Accuracy = 20,
+                            PedHash = PedHash.JohnnyKlebitz,
+                            Accuracy = 100,
                             Health = 1000,
-                            Position = new Vector3(-425.62f, 1109.41f, 327.68f),
+                            Position = new Vector3(-420f, 1108f, 332f),
+                            IsHeadshotImmute = true,
+                            IsWanderAround = true,
+                            WanderRange = 10f,
+                            Weapons = new List<MissionWeaponInfo>()
+                            {
+                                new MissionWeaponInfo()
+                                {
+                                    Hash = (uint)WeaponHash.SniperRifle,
+                                    Ammo = 300,
+                                },
+                            }
+                        },
+
+                        new MissionPedInfo()
+                        {
+                            PedHash = PedHash.Mani,
+                            Accuracy = 100,
+                            Health = 1000,
+                            Position = new Vector3(-432f, 1102f, 340f),
                             IsHeadshotImmute = true,
                             IsWanderAround = true,
                             WanderRange = 10f,
@@ -305,19 +343,15 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                                     Hash = (uint)WeaponHash.RPG,
                                     Ammo = 300,
                                 },
-                                //new MissionWeaponInfo()
-                                //{
-                                //    Hash = (uint)WeaponHash.Pistol,
-                                //    Ammo = 100,
-                                //}
                             }
                         },
+
                         new MissionPedInfo()
                         {
-                            PedHash = PedHash.Pogo01,
-                            Accuracy = 20,
-                            Health = 1000,
-                            Position = new Vector3(-458.17f, 1115.32f, 332.55f),
+                            PedHash = PedHash.Orleans,
+                            Accuracy = 100,
+                            Health = 2000,
+                            Position = new Vector3(-439f, 1074f, 353f),
                             IsHeadshotImmute = true,
                             IsWanderAround = true,
                             WanderRange = 10f,
@@ -325,22 +359,19 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                             {
                                 new MissionWeaponInfo()
                                 {
-                                    Hash = (uint)WeaponHash.Minigun,
+                                    Hash = (uint)WeaponHash.RPG,
                                     Ammo = 300,
                                 },
-                                //new MissionWeaponInfo()
-                                //{
-                                //    Hash = (uint)WeaponHash.Pistol,
-                                //    Ammo = 100,
-                                //}
                             }
                         },
+
+                        // footman
                         new MissionPedInfo()
                         {
-                            PedHash = PedHash.Zombie01,
+                            PedHash = PedHash.PestContGunman,
                             Accuracy = 20,
-                            Health = 1000,
-                            Position = new Vector3(-422.36f, 1109.42f, 332.53f),
+                            Health = 500,
+                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
                             IsHeadshotImmute = true,
                             IsWanderAround = true,
                             WanderRange = 10f,
@@ -348,17 +379,17 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                             {
                                 new MissionWeaponInfo()
                                 {
-                                    Hash = (uint)WeaponHash.GrenadeLauncher,
+                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
                                     Ammo = 300,
                                 },
                             }
                         },
                         new MissionPedInfo()
                         {
-                            PedHash = PedHash.Acult01AMM,
+                            PedHash = PedHash.PestContGunman,
                             Accuracy = 20,
-                            Health = 1000,
-                            Position = new Vector3(-406.14f, 1102.36f, 332.53f),
+                            Health = 500,
+                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
                             IsHeadshotImmute = true,
                             IsWanderAround = true,
                             WanderRange = 10f,
@@ -366,16 +397,53 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                             {
                                 new MissionWeaponInfo()
                                 {
-                                    Hash = (uint)WeaponHash.GrenadeLauncher,
+                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
                                     Ammo = 300,
                                 },
                             }
                         },
+                        new MissionPedInfo()
+                        {
+                            PedHash = PedHash.PestContGunman,
+                            Accuracy = 20,
+                            Health = 500,
+                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
+                            IsHeadshotImmute = true,
+                            IsWanderAround = true,
+                            WanderRange = 10f,
+                            Weapons = new List<MissionWeaponInfo>()
+                            {
+                                new MissionWeaponInfo()
+                                {
+                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
+                                    Ammo = 300,
+                                },
+                            }
+                        },
+                        new MissionPedInfo()
+                        {
+                            PedHash = PedHash.PestContGunman,
+                            Accuracy = 20,
+                            Health = 500,
+                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
+                            IsHeadshotImmute = true,
+                            IsWanderAround = true,
+                            WanderRange = 10f,
+                            Weapons = new List<MissionWeaponInfo>()
+                            {
+                                new MissionWeaponInfo()
+                                {
+                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
+                                    Ammo = 300,
+                                },
+                            }
+                        },
+                        //PestContGunman - gunman
                     },
                     RangeInfo = new MissionRangeInfo()
                     {
                         Position = new Vector3(-418.77f, 1147.17f, 325.86f),
-                        Radius = 100f,
+                        Radius = 200f,
                     },
                     PlayerWeapons = new List<MissionWeaponInfo>()
                     {
@@ -432,8 +500,8 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 
             // 创建范围Blip
             MissionInstance.RadiusBlip = World.CreateBlip(MissionsInfo[0].RangeInfo.Position, MissionsInfo[0].RangeInfo.Radius);
-            MissionInstance.RadiusBlip.Alpha = 128;
-            MissionInstance.RadiusBlip.Color = BlipColor.Yellow;
+            MissionInstance.RadiusBlip.Alpha = 64;
+            MissionInstance.RadiusBlip.Color = BlipColor.Red;
 
             // 自定义玩家武器
             Game.PlayerPed.Weapons.RemoveAll();
@@ -451,52 +519,6 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 
             return true;
 
-        }
-        
-        enum RelationshipGroupValue : uint
-        {
-            PLAYER = 0x6F0783F5,
-            CIVMALE = 0x02B8FA80,
-            CIVFEMALE = 0x47033600,
-            COP = 0xA49E591C,
-            SECURITY_GUARD = 0xF50B51B7,
-            PRIVATE_SECURITY = 0xA882EB57,
-            FIREMAN = 0xFC2CA767,
-            GANG_1 = 0x4325F88A,
-            GANG_2 = 0x11DE95FC,
-            GANG_9 = 0x8DC30DC3,
-            GANG_10 = 0x0DBF2731,
-            AMBIENT_GANG_LOST = 0x90C7DA60,
-            AMBIENT_GANG_MEXICAN = 0x11A9A7E3,
-            AMBIENT_GANG_FAMILY = 0x45897C40,
-            AMBIENT_GANG_BALLAS = 0xC26D562A,
-            AMBIENT_GANG_MARABUNTE = 0x7972FFBD,
-            AMBIENT_GANG_CULT = 0x783E3868,
-            AMBIENT_GANG_SALVA = 0x936E7EFB,
-            AMBIENT_GANG_WEICHENG = 0x6A3B9F86,
-            AMBIENT_GANG_HILLBILLY = 0xB3598E9C,
-            DEALER = 0x8296713E,
-            HATES_PLAYER = 0x84DCFAAD,
-            HEN = 0xC01035F9,
-            WILD_ANIMAL = 0x7BEA6617,
-            SHARK = 0x229503C8,
-            COUGAR = 0xCE133D78,
-            NO_RELATIONSHIP = 0xFADE4843,
-            SPECIAL = 0xD9D08749,
-            MISSION2 = 0x80401068,
-            MISSION3 = 0x49292237,
-            MISSION4 = 0x5B4DC680,
-            MISSION5 = 0x270A5DFA,
-            MISSION6 = 0x392C823E,
-            MISSION7 = 0x024F9485,
-            MISSION8 = 0x14CAB97B,
-            ARMY = 0xE3D976F3,
-            GUARD_DOG = 0x522B964A,
-            AGGRESSIVE_INVESTIGATE = 0xEB47D4E0,
-            MEDIC = 0xB0423AA0,
-            PRISONER = 0x7EA26372,
-            DOMESTIC_ANIMAL = 0x72F30F6E,
-            DEER = 0x31E50E10,
         }
 
         private void DestroyMission()
@@ -539,7 +561,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                         await Delay(100);
                     }
                     scaleform.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", API.GetLabelText("BM_PASS"), "~y~评分: 100~s~", 5);
-                    while (Game.GameTime - now <= 1000 * 15)
+                    while (Game.GameTime - now <= 1000 * 8)
                     {
                         scaleform.Render2D();
                         await Delay(0);
@@ -571,7 +593,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         private async Task<Ped> CreateMissionPed(MissionPedInfo pedInfo)
         {
             var model = new Model(pedInfo.PedHash);
-            await model.Request(1000 * 5);
+            await model.Request(1000 * 10);
 
             if (!model.IsLoaded)
                 return null;
@@ -658,7 +680,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                 ped.Task.WanderAround(pedInfo.Position, pedInfo.WanderRange);
             }
 
-            ped.FiringPattern = FiringPattern.BurstFireSMG;
+            ped.FiringPattern = FiringPattern.BurstFireBursts;
             
             return ped;
 
