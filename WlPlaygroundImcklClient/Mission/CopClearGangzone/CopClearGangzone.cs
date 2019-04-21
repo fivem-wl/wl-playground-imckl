@@ -439,7 +439,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             return true;
 
         }
-
+        
         enum RelationshipGroupValue : uint
         {
             PLAYER = 0x6F0783F5,
@@ -514,13 +514,18 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             switch (reason)
             {
                 case "finish":
+                    // 音乐
+                    if (API.GetResourceState("interact-sound") == "started")
+                        TriggerEvent("LIFE_CL:Sound:PlayOnOne", "gta_iv_mission_completed_sound", 30);
+                    else
+                        API.PlaySoundFrontend(-1, "Mission_Pass_Notify", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", true);
+                    // 界面
                     scaleform = new Scaleform("MP_BIG_MESSAGE_FREEMODE");
                     while (!scaleform.IsLoaded)
                     {
                         await Delay(100);
                     }
                     scaleform.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", API.GetLabelText("BM_PASS"), "~y~评分: 100~s~", 5);
-                    API.PlaySoundFrontend(-1, "Mission_Pass_Notify", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", true);
                     while (Game.GameTime - now <= 1000 * 15)
                     {
                         scaleform.Render2D();
@@ -531,13 +536,15 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                 case "dead":
                 case "timeup":
                 default:
+                    // 音乐
+                    API.PlaySoundFrontend(-1, "MP_Flash", "WastedSounds", true);
+                    // 界面
                     scaleform = new Scaleform("MP_BIG_MESSAGE_FREEMODE");
                     while (!scaleform.IsLoaded)
                     {
                         await Delay(100);
                     }
                     scaleform.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", API.GetLabelText("REPLAY_T"), "~y~评分: 0~s~", 5);
-                    API.PlaySoundFrontend(-1, "MP_Flash", "WastedSounds", true);
                     while (Game.GameTime - now <= 1000 * 8)
                     {
                         scaleform.Render2D();
@@ -700,7 +707,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 
                 await Task.FromResult(0);
             }), false);
-            
+
             API.RegisterCommand("testshows", new Action<int, List<object>, string>(async (source, args, raw) =>
             {
                 var now = Game.GameTime;
