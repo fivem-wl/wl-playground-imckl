@@ -5,20 +5,30 @@ using System.Text;
 using System.Threading.Tasks;
 
 using CitizenFX.Core;
-using static CitizenFX.Core.Native.API;
+using CitizenFX.Core.Native;
 
 
 namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 {
-    public delegate void PlayerKillPedEvent(Ped victim, bool isMeleeDamage, uint weaponInfoHash, int damageTypeFlag);
-    public delegate void PlayerDeadEvent();
+    
+    public delegate void PlayerKillPlayerEvent(Player attacker, Player victim, bool isMeleeDamage, uint weaponInfoHash, int damageTypeFlag);
+    public delegate void PlayerKillPedEvent(Player attacker, Ped victim, bool isMeleeDamage, uint weaponInfoHash, int damageTypeFlag);
+    public delegate void PedKillPlayerEvent(Ped attacker, Player victim, bool isMeleeDamage, uint weaponInfoHash, int damageTypeFlag);
+    public delegate void PedKillPedEvent(Ped attacker, Ped victim, bool isMeleeDamage, uint weaponInfoHash, int damageTypeFlag);
+    public delegate void EntityKillEntityEvent(Entity attacker, Entity victim, bool isMeleeDamage, uint weaponInfoHash, int damageTypeFlag);
+    public delegate void DeadEvent(Entity attacker, bool isMeleeDamage, uint weaponHashInfo, int damageTypeFlag);
+
 
     class FatalDamageEvents : BaseScript
     {
         
+        public static event PlayerKillPlayerEvent OnPlayerKillPlayer;
         public static event PlayerKillPedEvent OnPlayerKillPed;
-        public static event PlayerDeadEvent OnPlayerDead;
-
+        public static event PedKillPlayerEvent OnPedKillPlayer;
+        public static event PedKillPedEvent OnPedKillPed;
+        public static event EntityKillEntityEvent OnEntityKillEntity;
+        public static event DeadEvent OnDeath;
+        
         /// <summary>
         /// Handle game event CEventNetworkEntityDamage,
         /// Useful for indicating entity damage/died/destroyed.
@@ -39,17 +49,75 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             int arg5, int arg6, object arg7, object arg8, bool isMeleeDamage,
             int damageTypeFlag)
         {
-            if (isDamageFatal && victim is Ped p1 && attacker is Ped p2)
+            // 致命伤
+            if (isDamageFatal)
             {
-                if (p2 == Game.PlayerPed)
+                bool isAttackerPed = false;
+                bool isAttackerPlayer = false;
+                Ped pedAttacker = null;
+                Player playerAttacker = null;
+                // 攻击者是Ped
+                if (attacker is Ped)
                 {
-                    OnPlayerKillPed?.Invoke(p1, isMeleeDamage, weaponInfoHash, damageTypeFlag);
+                    pedAttacker = (Ped)attacker;
+                    isAttackerPed = true;
+                    // 攻击者是Player
+                    if (pedAttacker.IsPlayer)
+                    {
+                        playerAttacker = new Player(API.NetworkGetPlayerIndexFromPed(pedAttacker.Handle));
+                        isAttackerPlayer = true;
+                    }
                 }
+                bool isVictimPed = false;
+                bool isVictimPlayer = false;
+                bool isVictimThisPlayer = false;
+                Ped pedVictim = null;
+                Player playerVictim = null;
+                // 受害者是Ped
+                if (victim is Ped)
+                {
+                    pedVictim = (Ped)victim;
+                    isVictimPed = true;
+                    // 受害者是Player
+                    if (pedVictim.IsPlayer)
+                    {
+                        playerVictim = new Player(API.NetworkGetPlayerIndexFromPed(pedVictim.Handle));
+                        isVictimPlayer = true;
+                        if (playerVictim == Game.Player)
+                        {
+                            isVictimThisPlayer = true;
+                        }
+                    }
+                }
+
+                if (isAttackerPlayer && isVictimPlayer)
+                {
+                    OnPlayerKillPlayer?.Invoke(playerAttacker, playerVictim, isMeleeDamage, weaponInfoHash, damageTypeFlag);
+                }
+                else if (isAttackerPlayer && isVictimPed)
+                {
+                    OnPlayerKillPed?.Invoke(playerAttacker, pedVictim, isMeleeDamage, weaponInfoHash, damageTypeFlag);
+                }
+                else if (isAttackerPed && isVictimPlayer)
+                {
+                    OnPedKillPlayer?.Invoke(pedAttacker, playerVictim, isMeleeDamage, weaponInfoHash, damageTypeFlag);
+                }
+                else if (isVictimPed && isAttackerPed)
+                {
+                    OnPedKillPed?.Invoke(pedAttacker, pedVictim, isMeleeDamage, weaponInfoHash, damageTypeFlag);
+                }
+                else
+                {
+                    OnEntityKillEntity?.Invoke(attacker, victim, isMeleeDamage, weaponInfoHash, damageTypeFlag);
+                }
+
+                if (isVictimThisPlayer)
+                {
+                    OnDeath?.Invoke(attacker, isMeleeDamage, weaponInfoHash, damageTypeFlag);
+                }
+
             }
-            if (isDamageFatal && victim == Game.PlayerPed)
-            {
-                OnPlayerDead?.Invoke();
-            }
+
         }
 
         public FatalDamageEvents()

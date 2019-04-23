@@ -5,232 +5,265 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 
+using Newtonsoft.Json;
+
 using CitizenFX.Core;
 using CitizenFX.Core.Native;
 using CitizenFX.Core.UI;
+
+using WlPlaygroundImcklShared.Mission.CopClearGangzone;
 
 
 namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 {
 
-    public struct MissionInfo
-    {
-        /// <summary>
-        /// 任务人物信息
-        /// </summary>
-        public List<MissionPedInfo> PedsInfo { get; set; }
-
-        /// <summary>
-        /// 任务范围
-        /// </summary>
-        public MissionRangeInfo RangeInfo { get; set; }
-
-        /// <summary>
-        /// 任务武器
-        /// </summary>
-        public List<MissionWeaponInfo> PlayerWeapons { get; set; }
-
-        /// <summary>
-        /// 任务时间
-        /// </summary>
-        public int Duration { get; set; }
-
-        /// <summary>
-        /// 任务描述
-        /// </summary>
-        public string Description { get; set; }
-    }
-
-    public struct MissionRangeInfo
-    {
-        public Vector3 Position { get; set; }
-        public float Radius { get; set; }
-
-
-        public bool IsPlayerIn
-        {
-            get => Position.DistanceToSquared(Game.PlayerPed.Position) <= Math.Pow(Radius, 2);
-        }
-
-        public bool IsPositionIn(Vector3 position)
-            => Position.DistanceToSquared(position) <= Math.Pow(Radius, 2);
-    }
-
-    public struct MissionPedInfo
-    {
-        public PedHash PedHash { get; set; }
-        public int Accuracy { get; set; }
-        public int Health { get; set; }
-        public Vector3 Position { get; set; }
-        /// <summary>
-        /// 是否爆头击杀
-        /// </summary>
-        public bool IsHeadshotImmute { get; set; }
-
-        public bool IsWanderAround { get; set; }
-        public float WanderRange { get; set; }
-
-        public List<MissionWeaponInfo> Weapons { get; set; }
-    }
-
-    public struct MissionWeaponInfo
-    {
-        public uint Hash { get; set; }
-        public int Ammo { get; set; }
-        
-    }
-
     public delegate void StoppedEvent(string reason);
-    public class MissionTimer
+
+    public class MissionInstance : IDeletable
     {
-        
+        /// <summary>
+        /// 任务结束事件
+        /// </summary>
         public event StoppedEvent OnStop;
 
-        public int Duration { get; set; }
-        public int StartTime { get; }
-        public int RemainTime { get => Duration - (Game.GameTime - StartTime); }
-
-        private bool _stopped { get; set; }
-
-        public MissionTimer(int duration)
-        {
-            Duration = duration;
-            StartTime = Game.GameTime;
-        }
-
-        public async Task TickAsync()
-        {
-            if (!_stopped)
-            {
-                if (RemainTime <= 0)
-                {
-                    OnStop?.Invoke("timeup");
-                    _stopped = true;
-                }
-            }
-            await BaseScript.Delay(100);
-        }
-
-    }
-
-    public class MissionInstance : IDisposable
-    {
+        /// <summary>
+        /// Peds列表
+        /// </summary>
         public List<Ped> Peds { get; set; } = new List<Ped>();
+        /// <summary>
+        /// Hotzone
+        /// </summary>
         public Blip RadiusBlip { get; set; }
-        public MissionTimer Timer { get; set; }
-        public event StoppedEvent OnStop;
 
-        public MissionInstance(int duration)
+        /// <summary>
+        /// 任务时间提醒/检测
+        /// </summary>
+        public CustomTimer MissionTimer { get; private set; }
+        /// <summary>
+        /// 设置警察为同伴的检测/时间间隔
+        /// </summary>
+        private CustomTimer SetCopAllianceTimer { get; set; } = new CustomTimer(1000 * 2);
+
+        /// <summary>
+        /// 任务信息
+        /// </summary>
+        private MissionInfo MissionInfo { get; set; }
+
+        /// <summary>
+        /// Internal IDeletable check boolean
+        /// </summary>
+        private bool _existed { get; set; } = false;
+        /// <summary>
+        /// (internal)任务是否激活/开始
+        /// </summary>
+        public bool IsActivated { get; private set; } = false;
+
+        public MissionInstance(MissionInfo missionInfo)
         {
-            Timer = new MissionTimer(duration);
+            _existed = true;
 
-            FatalDamageEvents.OnPlayerDead += OnPlayerDead;
-            Timer.OnStop += _OnStop;
+            MissionInfo = missionInfo;
         }
 
-        public void Dispose()
+        public bool Exists()
         {
+            return _existed;
+        }
 
-            // 解除通缉状态
-            API.SetPlayerWantedLevel(Game.Player.Handle, 0, false);
-            API.SetPlayerWantedLevelNow(Game.Player.Handle, false);
+        public void Delete()
+        {
 
             Peds?.ForEach(p =>
             {
-                p?.AttachedBlip?.Delete();
-                p?.Delete();
+                p.AttachedBlip?.Delete();
+                p.IsPersistent = false;
+                p.MarkAsNoLongerNeeded();
             });
             
             RadiusBlip?.Delete();
 
-            FatalDamageEvents.OnPlayerDead -= OnPlayerDead;
-            Timer.OnStop -= _OnStop;
+            if(IsActivated)
+                Deactivate();
+
+            _existed = false;
 
         }
-
-        private void OnPlayerDead()
+        
+        /// <summary>
+        /// 激活/开始任务, 显示任务相关信息, 并与玩家进行关联
+        /// </summary>
+        public async Task Activate()
         {
-            OnStop?.Invoke("dead");
+            // 从服务器获取任务剩余时间
+            long remainTime = 0;
+            BaseScript.TriggerServerEvent($"{CopClearGangzone.ResourceName}:ClientGetMissionRemainTime");
+            try
+            {
+                remainTime = await MissionRemainTimeAsyncer.GetFromServer();
+            }
+            catch(TimeoutException e)
+            {
+                Notify.Error($"{e.Message}");
+                Debug.WriteLine($"[{CopClearGangzone.ResourceName}][ERROR]{e.Message}");
+                IsActivated = false;
+                return;
+            }
+
+            // 任务倒计时
+            MissionTimer = new CustomTimer(remainTime);
+
+            // 设置任务玩家组别及关系
+            Game.PlayerPed.RelationshipGroup = CopClearGangzone.MissionRunnerGroup;
+
+            // 创建范围Blip
+            RadiusBlip = World.CreateBlip(MissionInfo.RangeInfo.Position, MissionInfo.RangeInfo.Radius);
+            RadiusBlip.Alpha = 64;
+            RadiusBlip.Color = BlipColor.Red;
+            RadiusBlip.ShowRoute = true;
+
+            // 自定义玩家武器
+            Game.PlayerPed.Weapons.RemoveAll();
+            MissionInfo.PlayerWeapons.ForEach(
+                w => Game.PlayerPed.Weapons.Give((WeaponHash)w.Hash, w.Ammo, false, true));
+            
+            Peds?.ForEach(p =>
+            {
+                // 显示任务人物红点
+                var blip = p.AttachBlip();
+                blip.IsFriendly = false;
+                blip.IsFriend = false;
+                blip.IsShortRange = false;
+                // 设置玩家可伤害
+                // p.IsOnlyDamagedByPlayer = true;
+            });
+
+            FatalDamageEvents.OnDeath += OnDeath;
+            FatalDamageEvents.OnPlayerKillPed += OnPlayerKillPed;
+
+            // Trigger server event
+            BaseScript.TriggerServerEvent($"{CopClearGangzone.ResourceName}:ClientActivateMission");
+
+            // 界面/声音提醒
+            var info = MissionInfo.StartNotificationInfo;
+            Notify.CustomImage("CHAR_CALL911", "CHAR_CALL911", info.Message, info.Sender, info.Subject, true, 2);
+            AudioPlayer.Play(AudioName.Beep);
+            Subtitle.Draw(MissionInfo.HintSubtitle, (int)remainTime);
+
+            IsActivated = true;
+        }
+
+        public void Deactivate()
+        {
+            RadiusBlip?.Delete();
+
+            Peds?.ForEach(p =>
+            {
+                p.AttachedBlip?.Delete();
+            });
+
+            // (重置)设置任务玩家组别及关系
+            Game.PlayerPed.RelationshipGroup = new RelationshipGroup((int)RelationshipBaseGroup.PLAYER);
+
+            FatalDamageEvents.OnDeath -= OnDeath;
+            FatalDamageEvents.OnPlayerKillPed -= OnPlayerKillPed;
+
+            IsActivated = false;
+        }
+
+        private void OnDeath(Entity attacker, bool isMeleeDamage, uint weaponHashInfo, int damageTypeFlag)
+        {
+            // 如果玩家死亡, 则视为任务结束
+            _OnStop("dead");
+        }
+
+        private void OnPlayerKillPed(Player attacker, Ped victim, bool isMeleeDamage, uint weaponHashInfo, int damageTypeFlag)
+        {
+            // 任务目标死亡, 去除标记红点, 并标记为可回收资源
+            Peds.Where(p => p == victim).ToList().ForEach(p => 
+            {
+                p.AttachedBlip?.Delete();
+                p.IsPersistent = false;
+                p.MarkAsNoLongerNeeded();
+            });
+            // 所有任务目标死亡, 则视为任务完成
+            if (Peds.All(p => p.IsDead))
+            {
+                Debug.WriteLine("Mission complete");
+                _OnStop("finish");
+            }
         }
 
         private void _OnStop(string reason)
         {
+            // 解除通缉状态
+            API.SetPlayerWantedLevel(Game.Player.Handle, 0, false);
+            API.SetPlayerWantedLevelNow(Game.Player.Handle, false);
+            // Trigger server event
+            BaseScript.TriggerServerEvent($"{CopClearGangzone.ResourceName}:ClientStopMission", reason);
+            // Invoke callback
             OnStop?.Invoke(reason);
         }
 
-        private int LastSetCopGroupTime { get; set; } = 0;
-        private bool IsMeetSetCopGroupInterval
-        {
-            get
-            {
-                if (Game.GameTime - LastSetCopGroupTime > 1000)
-                {
-                    LastSetCopGroupTime = Game.GameTime;
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-        }
-
-
+        /// <summary>
+        /// 作用于每帧的异步方法
+        /// </summary>
+        /// <returns></returns>
         public async Task EveryFrameTickAsync()
         {
-            // 显示剩余时间
-            var remainTime = TimeSpan.FromMilliseconds(Timer.RemainTime);
-            var remainTimeString = string.Format(
-                "剩余时间 - {1:D2}:{2:D2}",
-                remainTime.Hours, remainTime.Minutes, remainTime.Seconds, remainTime.Milliseconds);
-            GUI.DrawTextOnScreen(remainTimeString,
-                GUI.SafeZone.Right - 0.1f, GUI.SafeZone.Bottom - API.GetTextScaleHeight(0.4f, 1) - 0.01f, 0.4f, Alignment.Center, 1, false);
-
-            await Task.FromResult(0);
-        }
-
-        public async Task TickAsync()
-        {
-            
-            if(Peds.All(p => p.IsDead))
+            if (IsActivated)
             {
-                Debug.WriteLine("Mission complete");
-                OnStop?.Invoke("finish");
+                // 显示剩余时间
+                var remainTime = TimeSpan.FromMilliseconds(MissionTimer.RemainTime);
+                var remainTimeString = string.Format(
+                    "剩余时间 - {1:D2}:{2:D2}",
+                    remainTime.Hours, remainTime.Minutes, remainTime.Seconds, remainTime.Milliseconds);
+                GUI.DrawTextOnScreen(remainTimeString,
+                    GUI.SafeZone.Right - 0.1f, GUI.SafeZone.Bottom - API.GetTextScaleHeight(0.4f, 1) - 0.01f, 0.4f, Alignment.Center, 1, false);
+                await Task.FromResult(0);
             }
             else
             {
-                // 保持通缉状态
-                API.SetPlayerWantedLevel(Game.Player.Handle, 5, false);
-                API.SetPlayerWantedLevelNow(Game.Player.Handle, false);
+                await BaseScript.Delay(1000);
             }
+        }
 
-            Peds?.ForEach(p =>
+        /// <summary>
+        /// 较为宽松的检测的异步方法
+        /// </summary>
+        /// <returns></returns>
+        public async Task TickAsync()
+        {
+            if (IsActivated)
             {
-                if (p.IsDead)
-                    p.AttachedBlip?.Delete();
-            });
-
-            // 设置警察为同伴
-            if (IsMeetSetCopGroupInterval)
-            {
-                foreach (var ped in World.GetAllPeds())
+                // 如果仍有敌人存活, 则保持通缉状态
+                if (Peds.Any(p => p.IsAlive))
                 {
-                    if (ped.IsPlayer)
-                        continue;
-                    var pedType = API.GetPedType(ped.Handle);
-                    if (pedType == 6 || pedType == 27 || pedType == 29)
+                    API.SetPlayerWantedLevel(Game.Player.Handle, 5, false);
+                    API.SetPlayerWantedLevelNow(Game.Player.Handle, false);
+                }
+
+                // 设置警察为同伴(仅当前刷新的警察)
+                if (SetCopAllianceTimer.IsMeet())
+                {
+                    foreach (var ped in World.GetAllPeds())
                     {
-                        if (ped.RelationshipGroup != CopClearGangzone.CopGroup)
-                            ped.RelationshipGroup = CopClearGangzone.CopGroup;
+                        if (ped.IsPlayer)
+                            continue;
+                        var pedType = API.GetPedType(ped.Handle);
+                        if (pedType == 6 || pedType == 27 || pedType == 29)
+                        {
+                            if (ped.RelationshipGroup != CopClearGangzone.MissionAlianceGroup)
+                                ped.RelationshipGroup = CopClearGangzone.MissionAlianceGroup;
+                        }
                     }
                 }
+
+                await BaseScript.Delay(1000);
             }
-            
-
-            await Timer.TickAsync();
-
-            await BaseScript.Delay(100);
-
+            else
+            {
+                await BaseScript.Delay(1000);
+            }
         }
     }
 
@@ -240,283 +273,96 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         public static string ResourceName = "CopClearGangzone";
 
         private List<MissionInfo> MissionsInfo;
-        private MissionInstance MissionInstance;
+        private static MissionInstance MissionInstance;
 
-        
-
-        private async Task<bool> CreateMission()
+        public static async Task<bool> ActivateCurrentMission()
         {
-            MissionsInfo = new List<MissionInfo>()
+            if (MissionInstance?.Exists() ?? false)
             {
-                new MissionInfo()
+                if (!MissionInstance.IsActivated)
                 {
-                    Duration = 1000 * 60 * 10,
-                    PedsInfo = new List<MissionPedInfo>()
-                    {
-                        new MissionPedInfo()
-                        {
-                            PedHash = PedHash.RsRanger01AMO,
-                            Accuracy = 20,
-                            Health = 1000,
-                            Position = new Vector3(-436f, 1128f, 332f),
-                            IsHeadshotImmute = true,
-                            IsWanderAround = true,
-                            WanderRange = 10f,
-                            Weapons = new List<MissionWeaponInfo>()
-                            {
-                                new MissionWeaponInfo()
-                                {
-                                    Hash = (uint)WeaponHash.GrenadeLauncher,
-                                    Ammo = 300,
-                                },
-                            }
-                        },
-                        new MissionPedInfo()
-                        {
-                            PedHash = PedHash.JohnnyKlebitz,
-                            Accuracy = 100,
-                            Health = 1000,
-                            Position = new Vector3(-436f, 1128f, 332f),
-                            IsHeadshotImmute = true,
-                            IsWanderAround = true,
-                            WanderRange = 10f,
-                            Weapons = new List<MissionWeaponInfo>()
-                            {
-                                new MissionWeaponInfo()
-                                {
-                                    Hash = (uint)WeaponHash.SniperRifle,
-                                    Ammo = 300,
-                                },
-                            }
-                        },
-
-                        //new MissionPedInfo()
-                        //{
-                        //    PedHash = PedHash.RsRanger01AMO,
-                        //    Accuracy = 20,
-                        //    Health = 1000,
-                        //    Position = new Vector3(-420f, 1108f, 332f),
-                        //    IsHeadshotImmute = true,
-                        //    IsWanderAround = true,
-                        //    WanderRange = 10f,
-                        //    Weapons = new List<MissionWeaponInfo>()
-                        //    {
-                        //        new MissionWeaponInfo()
-                        //        {
-                        //            Hash = (uint)WeaponHash.GrenadeLauncher,
-                        //            Ammo = 300,
-                        //        },
-                        //    }
-                        //},
-                        new MissionPedInfo()
-                        {
-                            PedHash = PedHash.JohnnyKlebitz,
-                            Accuracy = 100,
-                            Health = 1000,
-                            Position = new Vector3(-420f, 1108f, 332f),
-                            IsHeadshotImmute = true,
-                            IsWanderAround = true,
-                            WanderRange = 10f,
-                            Weapons = new List<MissionWeaponInfo>()
-                            {
-                                new MissionWeaponInfo()
-                                {
-                                    Hash = (uint)WeaponHash.SniperRifle,
-                                    Ammo = 300,
-                                },
-                            }
-                        },
-
-                        new MissionPedInfo()
-                        {
-                            PedHash = PedHash.Mani,
-                            Accuracy = 100,
-                            Health = 1000,
-                            Position = new Vector3(-432f, 1102f, 340f),
-                            IsHeadshotImmute = true,
-                            IsWanderAround = true,
-                            WanderRange = 10f,
-                            Weapons = new List<MissionWeaponInfo>()
-                            {
-                                new MissionWeaponInfo()
-                                {
-                                    Hash = (uint)WeaponHash.RPG,
-                                    Ammo = 300,
-                                },
-                            }
-                        },
-
-                        new MissionPedInfo()
-                        {
-                            PedHash = PedHash.Orleans,
-                            Accuracy = 100,
-                            Health = 2000,
-                            Position = new Vector3(-439f, 1074f, 353f),
-                            IsHeadshotImmute = true,
-                            IsWanderAround = true,
-                            WanderRange = 10f,
-                            Weapons = new List<MissionWeaponInfo>()
-                            {
-                                new MissionWeaponInfo()
-                                {
-                                    Hash = (uint)WeaponHash.RPG,
-                                    Ammo = 300,
-                                },
-                            }
-                        },
-
-                        // footman
-                        new MissionPedInfo()
-                        {
-                            PedHash = PedHash.PestContGunman,
-                            Accuracy = 20,
-                            Health = 500,
-                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
-                            IsHeadshotImmute = true,
-                            IsWanderAround = true,
-                            WanderRange = 10f,
-                            Weapons = new List<MissionWeaponInfo>()
-                            {
-                                new MissionWeaponInfo()
-                                {
-                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
-                                    Ammo = 300,
-                                },
-                            }
-                        },
-                        new MissionPedInfo()
-                        {
-                            PedHash = PedHash.PestContGunman,
-                            Accuracy = 20,
-                            Health = 500,
-                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
-                            IsHeadshotImmute = true,
-                            IsWanderAround = true,
-                            WanderRange = 10f,
-                            Weapons = new List<MissionWeaponInfo>()
-                            {
-                                new MissionWeaponInfo()
-                                {
-                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
-                                    Ammo = 300,
-                                },
-                            }
-                        },
-                        new MissionPedInfo()
-                        {
-                            PedHash = PedHash.PestContGunman,
-                            Accuracy = 20,
-                            Health = 500,
-                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
-                            IsHeadshotImmute = true,
-                            IsWanderAround = true,
-                            WanderRange = 10f,
-                            Weapons = new List<MissionWeaponInfo>()
-                            {
-                                new MissionWeaponInfo()
-                                {
-                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
-                                    Ammo = 300,
-                                },
-                            }
-                        },
-                        new MissionPedInfo()
-                        {
-                            PedHash = PedHash.PestContGunman,
-                            Accuracy = 20,
-                            Health = 500,
-                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
-                            IsHeadshotImmute = true,
-                            IsWanderAround = true,
-                            WanderRange = 10f,
-                            Weapons = new List<MissionWeaponInfo>()
-                            {
-                                new MissionWeaponInfo()
-                                {
-                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
-                                    Ammo = 300,
-                                },
-                            }
-                        },
-                        //PestContGunman - gunman
-                    },
-                    RangeInfo = new MissionRangeInfo()
-                    {
-                        Position = new Vector3(-418.77f, 1147.17f, 325.86f),
-                        Radius = 200f,
-                    },
-                    PlayerWeapons = new List<MissionWeaponInfo>()
-                    {
-                        new MissionWeaponInfo()
-                        {
-                            Hash = (uint)WeaponHash.AssaultRifle,
-                            Ammo = 480,
-                        },
-                        new MissionWeaponInfo()
-                        {
-                            Hash = (uint)WeaponHash.Flashlight,
-                            Ammo = 99,
-                        },
-                        new MissionWeaponInfo()
-                        {
-                            Hash = (uint)WeaponHash.SniperRifle,
-                            Ammo = 30,
-                        },
-                        new MissionWeaponInfo()
-                        {
-                            Hash = (uint)WeaponHash.VintagePistol,
-                            Ammo = 99,
-                        },
-                        new MissionWeaponInfo()
-                        {
-                            Hash = (uint)WeaponHash.StunGun,
-                            Ammo = 99,
-                        },
-                    },
-                    Description = "一群有~r~重火力的恐怖分子~s~占领了~y~天文台~s~, 为了维护世界和平, 请立即赶往~y~天文台~s~并协助警方制止他们!",
+                    await MissionInstance.Activate();
+                    return true;
                 }
-            };
+                else
+                {
+                    Notify.Alert("任务进行中");
+                    return false;
+                }
+            }
+            else
+            {
+                Debug.WriteLine($"[{ResourceName}]Not prepare for activating");
+                Notify.Info("没有可疑的区域暴乱活动");
+                return false;
+            }
+                
+        }
+
+        private async Task<bool> CreateMission(int missionInfoIndex)
+        {
+            Debug.WriteLine($"CreateMission {missionInfoIndex}");
+
+            // var index = missionInfoIndex;
+            var missionInfo = MissionsInfo[missionInfoIndex];
 
             DestroyMission();
-            MissionInstance = new MissionInstance(MissionsInfo[0].Duration);
+            MissionInstance = new MissionInstance(missionInfo);
 
             // 创建任务人物
-            foreach(var pi in MissionsInfo[0].PedsInfo)
+            foreach (var pedInfo in missionInfo.PedsInfo)
             {
-
-                Debug.WriteLine(pi.ToString());
-
-                var p = await CreateMissionPed(pi);
-                if (p is null)
+                var ped = await CreateMissionPed(pedInfo);
+                // 如果创建失败, 则释放资源并返回创建失败
+                if (ped is null)
                 {
-                    MissionInstance.Dispose();
+                    MissionInstance.Delete();
                     return false;
                 }
                 else
                 {
-                    MissionInstance.Peds.Add(p);
+                    MissionInstance.Peds.Add(ped);
                 }
             }
 
-            // 创建范围Blip
-            MissionInstance.RadiusBlip = World.CreateBlip(MissionsInfo[0].RangeInfo.Position, MissionsInfo[0].RangeInfo.Radius);
-            MissionInstance.RadiusBlip.Alpha = 64;
-            MissionInstance.RadiusBlip.Color = BlipColor.Red;
+            // 注册任务人物至服务端(客户端同步)
+            //MissionInstance.Peds.ForEach(ped =>
+            //{
+            //    Debug.WriteLine(
+            //        $"[{ResourceName}]Try set {ped.Handle} as networked - " +
+            //        $"{API.NetworkDoesEntityExistWithNetworkId(ped.Handle)} {API.NetworkGetNetworkIdFromEntity(ped.Handle)}");
+            //    //while (!API.NetworkDoesEntityExistWithNetworkId(ped.Handle))
+            //    //{
+            //    var networkId = API.NetworkGetNetworkIdFromEntity(ped.Handle);
+            //    Debug.WriteLine($"[{ResourceName}]Trying... {ped.Handle} as networked - {API.NetworkDoesEntityExistWithNetworkId(ped.Handle)}");
+            //    Debug.WriteLine($"[{ResourceName}]Trying... {ped.Handle} Ped to Net - {API.PedToNet(ped.Handle)}");
+            //    API.SetNetworkIdCanMigrate(networkId, true);
+            //    API.SetNetworkIdExistsOnAllMachines(networkId, true);
+            //    API.NetworkRegisterEntityAsNetworked(API.PedToNet(ped.Handle));
+            //    API.NetworkRegisterEntityAsNetworked(ped.Handle);
+            //    Debug.WriteLine($"[{ResourceName}]Trying... {ped.Handle} as networked - {API.NetworkDoesEntityExistWithNetworkId(ped.Handle)}");
+            //    Debug.WriteLine($"[{ResourceName}]Trying... {ped.Handle} Ped to Net - {API.PedToNet(ped.Handle)}");
+            //    //await Delay(1000);
+            //    //}
+            //    //API.NetworkSetNetworkIdDynamic(API.NetworkGetNetworkIdFromEntity(ped.Handle), false);
+            //    Debug.WriteLine($"[{ResourceName}]Set - {API.NetworkGetNetworkIdFromEntity(ped.Handle)}");
+            //});
 
-            // 自定义玩家武器
-            Game.PlayerPed.Weapons.RemoveAll();
-            MissionsInfo[0].PlayerWeapons.ForEach(
-                w => Game.PlayerPed.Weapons.Give((WeaponHash)w.Hash, w.Ammo, false, true));
-            
             Tick += MissionInstance.TickAsync;
             Tick += MissionInstance.EveryFrameTickAsync;
 
             MissionInstance.OnStop += StopMission;
 
-            // 发出提醒
-            Notify.CustomImage("CHAR_CALL911", "CHAR_CALL911", MissionsInfo[0].Description, "LSPD", "制止区域暴乱", true, 2);
-            API.PlaySoundFrontend(-1, "Boss_Message_Orange", "GTAO_Boss_Goons_FM_Soundset", false);
+            // 将创建记录发送至Server
+            //var x = MissionInstance.Peds.Select(p => new { p.NetworkId, p.Handle }).ToList();
+            //foreach (var i in x)
+            //{
+            //    Debug.WriteLine($"{i.Handle} {i.NetworkId}");
 
+            //}
+            //TriggerServerEvent($"{ResourceName}:RecordCreatedPed", x);
+            
+            
             return true;
 
         }
@@ -531,65 +377,50 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 
                 MissionInstance.OnStop -= StopMission;
 
-                MissionInstance.Dispose();
+                MissionInstance.Delete();
             }
 
         }
 
         private async void StopMission(string reason)
         {
+            if (MissionInstance.IsActivated)
+            {
+                await Delay(1000 * 3);
+                API.SetPlayerWantedLevel(Game.Player.Handle, 0, false);
+                API.SetPlayerWantedLevelNow(Game.Player.Handle, false);
+                await HintOnStopMission(reason);
+            }
             DestroyMission();
-            await HintOnStopMission(reason);
         }
 
+        /// <summary>
+        /// 任务结束提示
+        /// </summary>
+        /// <param name="reason"></param>
+        /// <returns></returns>
         private async Task HintOnStopMission(string reason)
         {
-            var now = Game.GameTime;
-            Scaleform scaleform;
             switch (reason)
             {
                 case "finish":
-                    // 音乐
-                    if (API.GetResourceState("interact-sound") == "started")
-                        TriggerEvent("LIFE_CL:Sound:PlayOnOne", "gta_iv_mission_completed_sound", 30);
-                    else
-                        API.PlaySoundFrontend(-1, "Mission_Pass_Notify", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", true);
-                    // 界面
-                    scaleform = new Scaleform("MP_BIG_MESSAGE_FREEMODE");
-                    while (!scaleform.IsLoaded)
-                    {
-                        await Delay(100);
-                    }
-                    scaleform.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", API.GetLabelText("BM_PASS"), "~y~评分: 100~s~", 5);
-                    while (Game.GameTime - now <= 1000 * 8)
-                    {
-                        scaleform.Render2D();
-                        await Delay(0);
-                    }
-                    scaleform.Dispose();
+                    AudioPlayer.Play(AudioName.MissionComplete);
+                    await ScaleformDrawer.DrawCenterBar(API.GetLabelText("BM_PASS"), "~y~评分: 100~s~");
                     break;
                 case "dead":
                 case "timeup":
                 default:
-                    // 音乐
-                    API.PlaySoundFrontend(-1, "MP_Flash", "WastedSounds", true);
-                    // 界面
-                    scaleform = new Scaleform("MP_BIG_MESSAGE_FREEMODE");
-                    while (!scaleform.IsLoaded)
-                    {
-                        await Delay(100);
-                    }
-                    scaleform.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", API.GetLabelText("REPLAY_T"), "~y~评分: 0~s~", 5);
-                    while (Game.GameTime - now <= 1000 * 8)
-                    {
-                        scaleform.Render2D();
-                        await Delay(0);
-                    }
-                    scaleform.Dispose();
+                    AudioPlayer.Play(AudioName.Wasted);
+                    await ScaleformDrawer.DrawCenterBar(API.GetLabelText("REPLAY_T"), "~y~评分: 0~s~");
                     break;
             }
         }
 
+        /// <summary>
+        /// 创建任务人物
+        /// </summary>
+        /// <param name="pedInfo"></param>
+        /// <returns></returns>
         private async Task<Ped> CreateMissionPed(MissionPedInfo pedInfo)
         {
             var model = new Model(pedInfo.PedHash);
@@ -599,21 +430,28 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                 return null;
 
             var ped = await World.CreatePed(model, pedInfo.Position);
-
+            // var ped = new Ped(API.CreatePed(26, (uint)pedInfo.PedHash, pedInfo.Position.X, pedInfo.Position.Y, pedInfo.Position.Z, 0, false, false));
             if (ped is null)
                 return null;
 
-            ped.RelationshipGroup = MissionGroup;
+            //API.NetworkGetServerTime
+            //API.NetworkIsSessionStarted();
+            //API.GetIsLoadingScreenActive();
+
+            // 设置分组
+            ped.RelationshipGroup = MissionEnemyGroup;
+            // 仅特定组可以对任务人物造成伤害
+            API.SetEntityOnlyDamagedByRelationshipGroup(ped.Handle, true, (uint)MissionRunnerGroup.Hash);
+            // API.SetEntityOnlyDamagedByRelationshipGroup(ped.Handle, true, (uint)MissionAlianceGroup.Hash);
 
             ped.Accuracy = pedInfo.Accuracy;
             ped.MaxHealthFloat = pedInfo.Health;
             ped.HealthFloat = pedInfo.Health;
             ped.CanSufferCriticalHits = !pedInfo.IsHeadshotImmute;
 
-            ped.AlwaysDiesOnLowHealth = false;
             ped.CanSwitchWeapons = true;
             // 是否会倒地挣扎?
-            ped.CanWrithe = false;
+            ped.CanWrithe = true;
             // 死亡掉落物器
             ped.DropsWeaponsOnDeath = false;
             ped.DiesInstantlyInWater = false;
@@ -626,7 +464,8 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             ped.CanRagdoll = false;
 
             ped.FatalInjuryHealthThreshold = 0;
-            ped.InjuryHealthThreshold = 0;
+            ped.AlwaysDiesOnLowHealth = true;
+            ped.InjuryHealthThreshold = 50;
 
             // 控制AI动作?
             //ped.Euphoria.BodyWrithe.
@@ -663,7 +502,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             //ped.ShootRate
 
             ped.IsEnemy = true;
-            ped.IsOnlyDamagedByPlayer = false;
+            // ped.IsOnlyDamagedByPlayer = false;
 
             //ped.BlockPermanentEvents = true;
             //API.TaskSetBlockingOfNonTemporaryEvents(ped.Handle, true);
@@ -673,22 +512,29 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 
             pedInfo.Weapons.ForEach(w => ped.Weapons.Give((WeaponHash)w.Hash, w.Ammo, false, true));
 
-            ped.AttachBlip();
-
             if (pedInfo.IsWanderAround)
             {
                 ped.Task.WanderAround(pedInfo.Position, pedInfo.WanderRange);
             }
 
             ped.FiringPattern = FiringPattern.BurstFireBursts;
-            
+
             return ped;
 
         }
 
-        public static RelationshipGroup MissionGroup = World.AddRelationshipGroup("MissionGroup");
-        public static RelationshipGroup CopGroup = World.AddRelationshipGroup("CopGroup");
-        public static RelationshipGroup PlayerGroup = World.AddRelationshipGroup("PlayerGroup");
+        /// <summary>
+        /// 任务敌人组
+        /// </summary>
+        public static RelationshipGroup MissionEnemyGroup;
+        /// <summary>
+        /// 任务同盟组
+        /// </summary>
+        public static RelationshipGroup MissionAlianceGroup;
+        /// <summary>
+        /// 任务玩家组
+        /// </summary>
+        public static RelationshipGroup MissionRunnerGroup;
 
         private static Menus.MainMenu MainMenu { get; set; }
         private async Task ToggleMenuCheckAsync()
@@ -700,93 +546,120 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             await Delay(1000);
         }
 
+        private async Task LoadAll(string MissionsInfoJson)
+        {
+
+            Debug.WriteLine($"[{ResourceName}]Loading MissionsInfo.");
+
+            // 反序列化
+            MissionsInfo = JsonConvert.DeserializeObject<List<MissionInfo>>(MissionsInfoJson);
+            await Task.FromResult(0);
+
+        }
+
+        /// <summary>
+        /// 加载模型(延迟执行)
+        /// </summary>
+        /// <returns></returns>
+        private async Task LoadModel()
+        {
+            
+            await Delay(1000 * 30);
+            Debug.WriteLine($"[{ResourceName}]Loading Models.");
+
+            // 预加载人物模型
+            MissionsInfo
+                .SelectMany(mi => mi.PedsInfo.Select(pi => pi.PedHash))
+                .Distinct()
+                .ToList()
+                .ForEach(async pedHash =>
+                {
+                    var loaded = await new Model(pedHash).Request(1000 * 60);
+                    Debug.WriteLine($"[{ResourceName}]Ped model {pedHash} load {(loaded ? "succeed" : "failed")}.");
+                });
+
+            // 预加载武器模型
+            //var weaponHashUnion = Enumerable.Union(
+            //    MissionsInfo.SelectMany(mi => mi.PlayerWeapons.Select(pw => pw.Hash)),
+            //    MissionsInfo.SelectMany(mi => mi.PedsInfo.SelectMany(pi => pi.Weapons.Select(wi => wi.Hash))));
+            //weaponHashUnion
+            //    .ToList().ForEach(async weaponHash =>
+            //    {
+            //        var loaded = await new Model((WeaponHash)weaponHash).Request(1000 * 60);
+            //        Debug.WriteLine($"[{ResourceName}]Weapon model {weaponHash} load {(loaded ? "succeed" : "failed")}.");
+            //    });
+
+            Tick -= LoadModel;
+
+        }
+
+        private async Task BroadcastMission(int missionInfoIndex)
+        {
+            var info = MissionsInfo[missionInfoIndex].ScheduleNotificationInfo;
+            // 发出提醒
+            Notify.CustomImage("CHAR_BUGSTARS", "CHAR_BUGSTARS",
+                info.Message, info.Sender, info.Subject,
+                true, 2);
+            AudioPlayer.Play(AudioName.Beep);
+            await Task.FromResult(0);
+        }
+
         public CopClearGangzone()
         {
 
-            MainMenu = new Menus.MainMenu();
-            MainMenu.CreateMenu();
-
-            EventHandlers.Add($"{ResourceName}:CreateMission", new Func<Task<bool>>(CreateMission));
+            Game.PlayerPed.IsInvincible = true;
+            
+            EventHandlers.Add($"{ResourceName}:LoadAll", new Func<string, Task>(LoadAll));
+            EventHandlers.Add($"{ResourceName}:CreateMission", new Func<int, Task<bool>>(CreateMission));
+            EventHandlers.Add($"{ResourceName}:StopMission", new Action<string>(StopMission));
+            EventHandlers.Add($"{ResourceName}:BroadcastMission", new Func<int, Task>(BroadcastMission));
+            EventHandlers.Add($"{ResourceName}:ClientGetMissionRemainTime", new Action<long>(MissionRemainTimeAsyncer.Set));
+            
+            // 从服务器加载任务信息
+            TriggerServerEvent($"{ResourceName}:LoadAll");
 
             Tick += ToggleMenuCheckAsync;
+            Tick += LoadModel;
 
-            Game.PlayerPed.RelationshipGroup = PlayerGroup;
+            MainMenu = new Menus.MainMenu();
+            MainMenu.CreateMenu();
+            
+            PresetRelationshipGroup();
 
-            PlayerGroup.SetRelationshipBetweenGroups(CopGroup, Relationship.Companion, true);
-            PlayerGroup.SetRelationshipBetweenGroups(MissionGroup, Relationship.Hate, true);
-
-            MissionGroup.SetRelationshipBetweenGroups(CopGroup, Relationship.Hate, true);
-
-
-            //Tick += new Func<Task>(async () =>
+            //API.RegisterCommand("myrelationship", new Action<int, List<object>, string>((source, args, raw) =>
             //{
-            //    foreach(var ped in World.GetAllPeds())
+            //    Debug.WriteLine($"My relationship: {Game.PlayerPed.RelationshipGroup.Hash}");
+            //    foreach (var ped in World.GetAllPeds())
             //    {
-            //        if (ped.IsPlayer)
-            //            continue;
-            //        var pedType = API.GetPedType(ped.Handle);
-            //        if (pedType == 6 || pedType == 27 || pedType == 29)
-            //        {
-            //            if (ped.RelationshipGroup != CopGroup)
-            //                ped.RelationshipGroup = CopGroup;
-            //        }
+            //        Debug.WriteLine($"{ped.Model}, {ped.Handle}, {ped.RelationshipGroup.Hash}");
             //    }
-            //    await Delay(1000);
-            //});
+            //}), false);
 
+        }
 
-            API.RegisterCommand("mytest", new Action<int, List<object>, string>(async (source, args, raw) =>
-            {
-                if (args.Count <= 0)
-                    return;
+        /// <summary>
+        /// 预设任务组关系, should be called only once in init.
+        /// </summary>
+        private static void PresetRelationshipGroup()
+        {
 
-                var cmd1 = args[0].ToString();
+            MissionEnemyGroup = World.AddRelationshipGroup("MissionEnemyGroup");
+            MissionAlianceGroup = World.AddRelationshipGroup("MissionAlianceGroup");
+            MissionRunnerGroup = World.AddRelationshipGroup("MissionRunnerGroup");
 
-                switch (cmd1)
-                {
-                    case "PlaySoundFrontend":
-                        if (args.Count < 4)
-                            return;
-                        var audioName = args[1].ToString();
-                        var audioRef = args[2].ToString();
-                        var p3 = int.Parse(args[3].ToString()) >= 1 ? true : false;
-                        API.PlaySoundFrontend(-1, audioName, audioRef, p3);
-
-                        // AUDIO::PLAY_SOUND_FRONTEND(-1, "RANK_UP", "HUD_AWARDS", 1); // 任务完成
-
-                        break;
-                }
-
-                await Task.FromResult(0);
-            }), false);
-
-            API.RegisterCommand("testshows", new Action<int, List<object>, string>(async (source, args, raw) =>
-            {
-                var now = Game.GameTime;
-                Scaleform scaleform = new Scaleform("MP_BIG_MESSAGE_FREEMODE");
-                while (!scaleform.IsLoaded)
-                {
-                    await Delay(100);
-                }
-
-                var labelText = "";
-                if (!(args.Count == 0 || string.IsNullOrEmpty(args[0].ToString())))
-                {
-                    labelText = args[0].ToString();
-                }
-
-                scaleform.CallFunction("SHOW_SHARD_WASTED_MP_MESSAGE", API.GetLabelText(labelText), "~y~DONE~s~", 5);
-                //API.PlaySoundFrontend(-1, "UNDER_THE_BRIDGE", "HUD_AWARDS", true);
-                //API.PlaySoundFrontend(-1, "MP_Flash", "WastedSounds", true);
-                // API.PlaySoundFrontend(-1, "Mission_Pass_Notify", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", true);
-                // REPLAY_T => mission failed
-                while (Game.GameTime - now <= 1000 * 8)
-                {
-                    scaleform.Render2D();
-                    await Delay(0);
-                }
-            }), false);
-
+            // 默认玩家与任务玩家为同盟
+            new RelationshipGroup((int)RelationshipBaseGroup.PLAYER).SetRelationshipBetweenGroups(MissionRunnerGroup, Relationship.Companion, true);
+            // 默认玩家与任务敌人为敌对
+            new RelationshipGroup((int)RelationshipBaseGroup.PLAYER).SetRelationshipBetweenGroups(MissionEnemyGroup, Relationship.Hate, true);
+            // 任务玩家与任务敌人为敌对
+            MissionRunnerGroup.SetRelationshipBetweenGroups(MissionEnemyGroup, Relationship.Hate, true);
+            // 任务玩家与任务同盟为同盟
+            MissionRunnerGroup.SetRelationshipBetweenGroups(MissionAlianceGroup, Relationship.Companion, true);
+            // 任务同盟与任务敌人为敌对
+            MissionAlianceGroup.SetRelationshipBetweenGroups(MissionEnemyGroup, Relationship.Hate, true);
+            // 任务敌人与行人为敌对
+            MissionEnemyGroup.SetRelationshipBetweenGroups(new RelationshipGroup((int)RelationshipBaseGroup.COP), Relationship.Hate, true);
+            MissionEnemyGroup.SetRelationshipBetweenGroups(new RelationshipGroup((int)RelationshipBaseGroup.CIVFEMALE), Relationship.Hate, true);
         }
 
     }

@@ -51,12 +51,13 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone.Menus
 
             Menu.AddMenuItem(areaRiotMissionMenuBtn);
 
-            Menu.OnItemSelect += (_menu, _item, _index) =>
+            Menu.OnItemSelect += async (_menu, _item, _index) =>
             {
                 if (_item == areaRiotMissionMenuBtn)
                 {
                     Debug.WriteLine("try create mission");
-                    BaseScript.TriggerEvent($"{CopClearGangzone.ResourceName}:CreateMission");
+                    await CopClearGangzone.ActivateCurrentMission();
+                    // BaseScript.TriggerServerEvent($"{CopClearGangzone.ResourceName}:CreateMission");
                 }
             };
         }

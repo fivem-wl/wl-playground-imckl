@@ -5,7 +5,21 @@ VisualStudioVersion = 15.0.28307.539
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WlPlaygroundImcklClient", "WlPlaygroundImcklClient\WlPlaygroundImcklClient.csproj", "{306A778C-B2A3-4F4C-8505-CA470F581DE7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WlPlaygroundImcklServer", "WlPlaygroundImcklServer\WlPlaygroundImcklServer.csproj", "{652F7DC1-5E05-41FE-BBEB-60E282299314}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Extra", "Extra", "{A3E00C16-B6DA-49A8-9EDB-6E5F761E30A9}"
+	ProjectSection(SolutionItems) = preProject
+		Extra\__resource.lua = Extra\__resource.lua
+	EndProjectSection
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WlPlaygroundImcklShared", "WlPlaygroundImcklShared\WlPlaygroundImcklShared.shproj", "{95371872-BE4A-49CE-ABE1-4972881FD8B2}"
+EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		WlPlaygroundImcklShared\WlPlaygroundImcklShared.projitems*{306a778c-b2a3-4f4c-8505-ca470f581de7}*SharedItemsImports = 4
+		WlPlaygroundImcklShared\WlPlaygroundImcklShared.projitems*{652f7dc1-5e05-41fe-bbeb-60e282299314}*SharedItemsImports = 4
+		WlPlaygroundImcklShared\WlPlaygroundImcklShared.projitems*{95371872-be4a-49ce-abe1-4972881fd8b2}*SharedItemsImports = 13
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -15,6 +29,10 @@ Global
 		{306A778C-B2A3-4F4C-8505-CA470F581DE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{306A778C-B2A3-4F4C-8505-CA470F581DE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{306A778C-B2A3-4F4C-8505-CA470F581DE7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{652F7DC1-5E05-41FE-BBEB-60E282299314}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{652F7DC1-5E05-41FE-BBEB-60E282299314}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{652F7DC1-5E05-41FE-BBEB-60E282299314}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{652F7DC1-5E05-41FE-BBEB-60E282299314}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

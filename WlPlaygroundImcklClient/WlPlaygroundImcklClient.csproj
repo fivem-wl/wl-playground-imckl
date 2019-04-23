@@ -26,8 +26,8 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <OutputPath>..\bin\Release\</OutputPath>
+    <DefineConstants>TRACE;CLIENT</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -35,9 +35,11 @@
     <Reference Include="CitizenFX.Core.Client, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\CitizenFX.Core.Client.1.0.1188\lib\net45\CitizenFX.Core.Client.dll</HintPath>
     </Reference>
-    <Reference Include="MenuAPI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>Lib\Client\MenuAPI.dll</HintPath>
+    <Reference Include="MenuAPI">
+      <HintPath>..\Lib\Client\MenuAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\Lib\Shared\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -50,29 +52,28 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Mission\CopClearGangzone\AudioPlayer.cs" />
     <Compile Include="Mission\CopClearGangzone\CopClearGangzone.cs" />
+    <Compile Include="Mission\CopClearGangzone\EntityDecoration.cs" />
     <Compile Include="Mission\CopClearGangzone\FatalDamgeEvents.cs" />
     <Compile Include="Mission\CopClearGangzone\GUI.cs" />
     <Compile Include="Mission\CopClearGangzone\Menus\MainMenu.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionRemainTimeAsyncer.cs" />
     <Compile Include="Mission\CopClearGangzone\Notify.cs" />
+    <Compile Include="Mission\CopClearGangzone\RelationshipBaseGroup.cs" />
+    <Compile Include="Mission\CopClearGangzone\ScaleformDrawer.cs" />
+    <Compile Include="Mission\CopClearGangzone\Subtitle.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Lib\Server\libSQLite.Interop.so" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="Extra\__resource.lua" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Lib\Shared\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Lib\Client\MenuAPI.dll" />
-  </ItemGroup>
+  <ItemGroup />
+  <Import Project="..\WlPlaygroundImcklShared\WlPlaygroundImcklShared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /Y "$(ProjectDir)\Extra\__resource.lua" "$(TargetDir)\"
+    <PostBuildEvent>copy /Y "$(SolutionDir)\Extra\__resource.lua" "$(TargetDir)\"
+copy /Y "$(SolutionDir)\Lib\Shared\System.Numerics.dll" "$(TargetDir)\"
 del "$(TargetDir)\CitizenFX.Core.Client.dll" /q
 del "$(TargetDir)\*.xml" /q
 del "$(TargetDir)\*.pdb" /q</PostBuildEvent>

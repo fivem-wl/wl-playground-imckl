@@ -16,6 +16,12 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
     /// </summary>
     public static class Notify
     {
+
+        /// <summary>
+        /// 适应汉字大小的StringToArray
+        /// </summary>
+        /// <param name="inputString"></param>
+        /// <returns></returns>
         public static string[] StringToArray(string inputString)
         {
             int stringsNeeded = (inputString.Length % 30 == 0) ? (inputString.Length / 30) : (inputString.Length / 30 + 1);
