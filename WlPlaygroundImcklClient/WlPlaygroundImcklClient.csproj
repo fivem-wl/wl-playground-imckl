@@ -30,6 +30,7 @@
     <DefineConstants>TRACE;CLIENT</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="CitizenFX.Core.Client, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -52,17 +53,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Mission\CopClearGangzone\AudioPlayer.cs" />
+    <Compile Include="Mission\CopClearGangzone\HostSelector.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionAudio\AudioPlayer.cs" />
     <Compile Include="Mission\CopClearGangzone\CopClearGangzone.cs" />
-    <Compile Include="Mission\CopClearGangzone\EntityDecoration.cs" />
+    <Compile Include="Mission\CopClearGangzone\MIssionEntity\EntityDecoration.cs" />
     <Compile Include="Mission\CopClearGangzone\FatalDamgeEvents.cs" />
-    <Compile Include="Mission\CopClearGangzone\GUI.cs" />
-    <Compile Include="Mission\CopClearGangzone\Menus\MainMenu.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionGUI\GUI.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionMenu\MainMenu.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionPed\MissionPedController.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionRelationshipGroup\PedExtension.cs" />
     <Compile Include="Mission\CopClearGangzone\MissionRemainTimeAsyncer.cs" />
-    <Compile Include="Mission\CopClearGangzone\Notify.cs" />
-    <Compile Include="Mission\CopClearGangzone\RelationshipBaseGroup.cs" />
-    <Compile Include="Mission\CopClearGangzone\ScaleformDrawer.cs" />
-    <Compile Include="Mission\CopClearGangzone\Subtitle.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionGUI\Notify.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionRelationshipGroup\RelationshipBaseGroup.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionRelationshipGroup\Relationship.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionPed\PedExtension.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionPed\PedType.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionGUI\ScaleformDrawer.cs" />
+    <Compile Include="Mission\CopClearGangzone\MissionGUI\Subtitle.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

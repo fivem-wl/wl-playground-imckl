@@ -19,8 +19,11 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
     public sealed class CopClearGangzone : BaseScript
     {
 
-        public static string ResourceName = "CopClearGangzone";
-        private List<MissionInfo> MissionsInfo;
+        public const string ResourceName = "CopClearGangzone";
+        public static MissionsInfo MissionsInfo;
+
+        private HostSelector HostSelector;
+        private MissionCreator MissionCreator;
 
         /// <summary>
         /// 是否有玩家在线
@@ -29,32 +32,26 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
 
         public CopClearGangzone()
         {
-            EventHandlers.Add($"{ResourceName}:LoadAll", new Action<Player>(LoadAll));
-            //EventHandlers.Add($"{ResourceName}:CreateMission", new Action(CreateMission));
-            EventHandlers.Add($"{ResourceName}:ClientActivateMission", new Action<Player>(ClientActivateMission));
-            EventHandlers.Add($"{ResourceName}:ClientGetMissionRemainTime", new Action<Player>(ClientGetMissionRemainTime));
-            EventHandlers.Add($"{ResourceName}:ClientStopMission", new Action<Player, string>(ClientStopMission));
-            //EventHandlers.Add($"{ResourceName}:RecordCreatedPed", new Action<Player, List<dynamic>>(RecordCreatedPed));
-
-            EventHandlers["playerDropped"] += new Action<Player, string>(OnPlayerDropped);
-
             // 读取任务信息
             MissionsInfo = Storage.GetAll();
+
+            HostSelector = new HostSelector();
+            EventHandlers.Add(HostSelector.EventName, HostSelector.EventDelegate);
+
+            MissionCreator = new MissionCreator();
+            EventHandlers.Add(MissionCreator.EventName, MissionCreator.EventDelegate);
+
+            EventHandlers.Add($"{ResourceName}:LoadAll", new Action<Player>(LoadAll));
+            //EventHandlers.Add($"{ResourceName}:CreateMission", new Action(CreateMission));
+            EventHandlers.Add($"{ResourceName}:ClientJoinMission", new Action<Player>(ClientJoinMission));
+            EventHandlers.Add($"{ResourceName}:ClientLeaveMission", new Action<Player, string>(ClientLeaveMission));
+            EventHandlers.Add($"{ResourceName}:ClientGetMissionRemainTime", new Action<Player>(ClientGetMissionRemainTime));
+
+            EventHandlers["playerDropped"] += new Action<Player, string>(OnPlayerDropped);
 
             // 任务计划
             Tick += ScheduleMissionAsync;
 
-            API.RegisterCommand("pedtest", new Action<int, List<object>, string>((source, args, raw) =>
-            {
-                Debug.WriteLine($"Ped test");
-                foreach (var (Handle, NetworkId) in TestSample)
-                {
-                    Debug.WriteLine($"{Handle} {NetworkId}");
-                    Debug.WriteLine($"NetworkGetEntityFromNetworkId: {API.NetworkGetEntityFromNetworkId(NetworkId)}");
-                    Debug.WriteLine($"NetworkGetNetworkIdFromEntity: {API.NetworkGetNetworkIdFromEntity(API.NetworkGetEntityFromNetworkId(NetworkId))}");
-                    Debug.WriteLine($"NetworkGetEntityOwner: {API.NetworkGetEntityOwner(API.NetworkGetEntityFromNetworkId(NetworkId))}");
-                }
-            }), false);
         }
 
         private void OnPlayerDropped([FromSource] Player source, string reason)
@@ -94,7 +91,7 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
         /// <summary>
         /// 任务最小时间间隔
         /// </summary>
-        public long MissionRescheduleWaitTime { get; set; } = 1000 * 60 * 3;
+        public long MissionRescheduleWaitTime { get; set; } = 1000 * 60 * 1;
         /// <summary>
         /// 任务状态检测(异步)
         /// </summary>
@@ -128,7 +125,9 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
                         // 有任意玩家
                         if (HasAnyPlayer)
                         {
-                            CreateMission(CurrentMissionIndex);
+                            // 尝试创建任务
+                            await CreateMission(CurrentMissionIndex);
+
                         }
                     }
                 }
@@ -152,22 +151,21 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
         }
 
         /// <summary>
-        /// 客户端激活任务
+        /// 客户端加入任务
         /// </summary>
-        private void ClientActivateMission([FromSource]Player source)
+        private void ClientJoinMission([FromSource]Player source)
         {
-            Debug.WriteLine($"[{ResourceName}]Mission activated at client: {source.Identifiers["license"]}");
+            Debug.WriteLine($"[{ResourceName}]Mission joined at client: {source.Identifiers["license"]}");
         }
 
         /// <summary>
-        /// 客户端完成任务
+        /// 客户端离开任务
         /// </summary>
         /// <param name="source"></param>
         /// <param name="reason"></param>
-        private void ClientStopMission([FromSource]Player source, string reason)
+        private void ClientLeaveMission([FromSource]Player source, string reason)
         {
-            Debug.WriteLine($"[{ResourceName}]Mission stopped at client: {source.Identifiers["license"]}, reason: {reason}");
-            StopMission(reason);
+            Debug.WriteLine($"[{ResourceName}]Mission leaved at client: {source.Identifiers["license"]}, reason: {reason}");
         }
 
         /// <summary>
@@ -186,20 +184,49 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
         private void StopMission(string reason)
         {
             IsMissionRunning = false;
-            TriggerClientEvent($"{ResourceName}:StopMission", reason);
+            if (reason == "timeup")
+            {
+                TriggerClientEvent($"{ResourceName}:LeaveCurrentMission", reason);
+            }
+            else
+            {
+                TriggerClientEvent($"{ResourceName}:DestroyMission", reason);
+            }
         }
 
         /// <summary>
-        /// 在客户端创建任务, 并开始服务器的任务倒计时
+        /// 尝试在客户端创建任务, 并开始服务器的任务倒计时
         /// </summary>
         /// <param name="currentMissionIndex"></param>
-        private void CreateMission(int currentMissionIndex)
+        private async Task<bool> CreateMission(int missionInfoIndex)
         {
+
+            Debug.WriteLine($"[DEBUG][{ResourceName}]Start to create mission.");
+            // 尝试获取合适的客户端用于Host
+            var turstedClient = await HostSelector.TryGetByCreatingDummyPedsAsync(MissionsInfo.GetPedsHash(missionInfoIndex));
+            if (turstedClient is null)
+            {
+                Debug.WriteLine($"[WARNING][{ResourceName}]Failed to get trusted client, retry creating after next interval.");
+                return false;
+            }
+
+            // 尝试用指定Client创建任务
+            var succeed = await MissionCreator.TryCreateByClient(turstedClient, missionInfoIndex);
+            if (!succeed)
+            {
+                Debug.WriteLine($"[WARNING][{ResourceName}]Failed to create mission by trusted client, retry creating after next interval.");
+                return false;
+            }
+
+            Debug.WriteLine($"[INFO][{ResourceName}]Create mission succeed.");
+
             IsMissionRunning = true;
 
-            MissionRunningTimer = new CustomTimer(MissionsInfo[currentMissionIndex].Duration);
+            MissionRunningTimer = new CustomTimer(MissionsInfo[missionInfoIndex].Duration);
 
-            TriggerClientEvent($"{ResourceName}:CreateMission", currentMissionIndex);
+            TriggerClientEvent($"{ResourceName}:CreateAndActivateMission", missionInfoIndex);
+
+            return true;
         }
 
         /// <summary>
@@ -213,25 +240,105 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
 
         private void LoadAll([FromSource] Player source)
         {
-            TriggerClientEvent(source, $"{ResourceName}:LoadAll", JsonConvert.SerializeObject(MissionsInfo));
+            TriggerClientEvent(source, $"{ResourceName}:LoadAll", MissionsInfo.Serialize());
         }
 
-        List<(int Handle, int NetworkId)> TestSample = new List<(int Handle, int NetworkId)>();
+    }
 
-        //private void RecordCreatedPed([FromSource] Player source, List<dynamic> list)
-        //{
-        //    Debug.WriteLine($"uploader: {source.Identifiers["license"]}");
-        //    foreach(var item in list)
-        //    {
-        //        Debug.WriteLine($"{item.Handle} {item.NetworkId}");
-        //        Debug.WriteLine($"NetworkGetEntityFromNetworkId: {API.NetworkGetEntityFromNetworkId(item.NetworkId)}");
-        //        Debug.WriteLine($"NetworkGetNetworkIdFromEntity: {API.NetworkGetNetworkIdFromEntity(API.NetworkGetEntityFromNetworkId(item.NetworkId))}");
-        //        Debug.WriteLine($"NetworkGetEntityOwner: {API.NetworkGetEntityOwner(API.NetworkGetEntityFromNetworkId(item.NetworkId))}");
-        //        TestSample.Add((item.Handle, item.NetworkId));
-        //    }
-        //}
+    /// <summary>
+    /// 任务创建器
+    /// </summary>
+    public class MissionCreator
+    {
 
+        private Player RespondFrom;
+        private long RespondAt;
+        private long WaitAt;
+        private bool IsWaiting;
 
+        public string EventName;
+        public Action<Player, int> EventDelegate;
+
+        /// <summary>
+        /// 初始化
+        /// </summary>
+        public MissionCreator()
+        {
+            EventName = $"{CopClearGangzone.ResourceName}:RespondCreateMissionAsHost";
+            EventDelegate = new Action<Player, int>(RespondCreateMissionAsHost);
+        }
+
+        /// <summary>
+        /// 尝试创建任务
+        /// </summary>
+        /// <param name="trustedClient"></param>
+        /// <param name="missionInfoIndex"></param>
+        /// <returns></returns>
+        internal async Task<bool> TryCreateByClient(Player trustedClient, int missionInfoIndex)
+        {
+
+            var clientLicense = trustedClient.Identifiers["license"];
+            var clientEndPoint = trustedClient.EndPoint;
+
+            BaseScript.TriggerClientEvent(trustedClient, $"{CopClearGangzone.ResourceName}:TryCreateMissionAsHost", missionInfoIndex);
+            try
+            {
+                await WaitForAnyResponse();
+            }
+            catch (TimeoutException e)
+            {
+                Debug.WriteLine($"[ERROR][{CopClearGangzone.ResourceName}]No respond from {clientLicense}({clientEndPoint}). Reason: {e.Message}");
+                return false;
+            }
+
+            Debug.WriteLine($"[DEBUG][{CopClearGangzone.ResourceName}]Response from {clientLicense}({clientEndPoint}), created succeed");
+
+            return true;
+
+        }
+
+        /// <summary>
+        /// 接收客户端响应结果
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="clientElapsedTime"></param>
+        private void RespondCreateMissionAsHost([FromSource]Player source, int clientElapsedTime)
+        {
+            if (IsWaiting)
+            {
+                RespondFrom = source;
+                RespondAt = API.GetGameTimer();
+                IsWaiting = false;
+            }
+            Debug.WriteLine($"[DEBUG][{CopClearGangzone.ResourceName}]" +
+                $"Recieved mission creation succeed response from {source.Identifiers["license"]} at endpoint {source.EndPoint}, " +
+                $"client elapsed time: {clientElapsedTime}");
+        }
+
+        /// <summary>
+        /// 等待任意客户端响应
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
+        private async Task<bool> WaitForAnyResponse(int timeout = 1000 * 30)
+        {
+            WaitAt = API.GetGameTimer();
+            IsWaiting = true;
+            while (IsWaiting)
+            {
+                if (API.GetGameTimer() - WaitAt > timeout)
+                {
+                    IsWaiting = false;
+                    throw (new TimeoutException("Wait timeout."));
+                }
+                await BaseScript.Delay(100);
+            }
+            IsWaiting = false;
+
+            return false;
+        }
 
     }
+
+
 }

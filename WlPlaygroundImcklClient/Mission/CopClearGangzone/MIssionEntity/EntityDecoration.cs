@@ -11,7 +11,7 @@ using CitizenFX.Core.Native;
 /// <summary>
 /// Ported from: https://github.com/thers/FRFuel
 /// </summary>
-namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
+namespace WlPlaygroundImcklClient.Mission.CopClearGangzone.MissionEntity
 {
     public enum DecorationType
     {
@@ -39,7 +39,17 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 
         public static void RegisterProperty(string propertyName, DecorationType type)
         {
-            API.DecorRegister(propertyName, (int)type);
+            try
+            {
+                API.DecorRegister(propertyName, (int)type);
+            }
+            catch(Exception e)
+            {
+                Debug.WriteLine(@"[CRITICAL] A critical bug in one of your scripts was detected. Unable to set or register a decorator's value because another resource has already registered 1.5k or more decorators.");
+                Debug.WriteLine($"Error Location: {e.StackTrace}\nError info: {e.Message.ToString()}");
+                throw new EntityDecorationRegisterPropertyFailedException();
+            }
+            
         }
 
         public static void Set(Entity entity, string propertyName, float floatValue)
@@ -107,4 +117,5 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 
     public class EntityDecorationUnregisteredPropertyException : Exception { }
     public class EntityDecorationUndefinedTypeException : Exception { }
+    public class EntityDecorationRegisterPropertyFailedException : Exception { }
 }

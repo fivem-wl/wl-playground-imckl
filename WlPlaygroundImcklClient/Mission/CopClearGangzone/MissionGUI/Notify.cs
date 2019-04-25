@@ -8,7 +8,7 @@ using CitizenFX.Core;
 using static CitizenFX.Core.Native.API;
 
 
-namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
+namespace WlPlaygroundImcklClient.Mission.CopClearGangzone.MissionGUI
 {
     /// <summary>
     /// 发送提醒至玩家.

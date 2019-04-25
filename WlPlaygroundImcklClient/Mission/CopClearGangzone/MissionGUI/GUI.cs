@@ -8,7 +8,7 @@ using CitizenFX.Core;
 using CitizenFX.Core.Native;
 
 
-namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
+namespace WlPlaygroundImcklClient.Mission.CopClearGangzone.MissionGUI
 {
     class GUI
     {

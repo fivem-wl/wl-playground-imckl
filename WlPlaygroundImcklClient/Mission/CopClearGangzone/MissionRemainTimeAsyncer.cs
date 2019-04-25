@@ -10,10 +10,32 @@ using CitizenFX.Core.Native;
 
 namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 {
-    public static class MissionRemainTimeAsyncer
+    /// <summary>
+    /// 从服务器获取任务剩余时间
+    /// </summary>
+    public class MissionRemainTimeAsyncer
     {
-        private static bool ServerResponsed { get; set; } = false;
-        private static long RemainTime { get; set; } = 0;
+        private bool ServerResponsed { get; set; }
+        private long RemainTime { get; set; }
+
+        public string EventName;
+        public Delegate EventDelegate;
+
+        // Singleton
+        private static readonly Lazy<MissionRemainTimeAsyncer>
+            lazy = new Lazy<MissionRemainTimeAsyncer>(() => new MissionRemainTimeAsyncer());
+        /// <summary>
+        /// Singleton instance
+        /// </summary>
+        public static MissionRemainTimeAsyncer Instance { get { return lazy.Value; } }
+        private MissionRemainTimeAsyncer()
+        {
+            ServerResponsed = false;
+            RemainTime = 0;
+
+            EventName = $"{CopClearGangzone.ResourceName}:ClientGetMissionRemainTime";
+            EventDelegate = new Action<long>(Set);
+        }
 
         /// <summary>
         /// 从服务器返回任务剩余时间.
@@ -21,7 +43,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         /// </summary>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public static async Task<long> GetFromServer(int timeout = 1000 * 15)
+        public async Task<long> GetFromServer(int timeout = 1000 * 15)
         {
             BaseScript.TriggerServerEvent($"{CopClearGangzone.ResourceName}:ClientGetMissionRemainTime");
 
@@ -42,10 +64,10 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         }
 
         /// <summary>
-        /// 设置任务剩余时间, 请用于接收服务器返回结果
+        /// 设置任务剩余时间, 用于接收服务器返回结果
         /// </summary>
         /// <param name="remainTime"></param>
-        public static void Set(long remainTime)
+        private void Set(long remainTime)
         {
             RemainTime = remainTime;
             ServerResponsed = true;

@@ -10,7 +10,7 @@ using CitizenFX.Core.Native;
 using MenuAPI;
 
 
-namespace WlPlaygroundImcklClient.Mission.CopClearGangzone.Menus
+namespace WlPlaygroundImcklClient.Mission.CopClearGangzone.MissionMenu
 {
 
     public abstract class SubMenu
@@ -55,9 +55,8 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone.Menus
             {
                 if (_item == areaRiotMissionMenuBtn)
                 {
-                    Debug.WriteLine("try create mission");
-                    await CopClearGangzone.ActivateCurrentMission();
-                    // BaseScript.TriggerServerEvent($"{CopClearGangzone.ResourceName}:CreateMission");
+                    // 尝试加入任务
+                    await CopClearGangzone.TryJoinCurrentMission();
                 }
             };
         }

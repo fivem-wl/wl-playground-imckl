@@ -5,12 +5,108 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 
+using Newtonsoft.Json;
+
 using CitizenFX.Core;
 using CitizenFX.Core.Native;
 
 
 namespace WlPlaygroundImcklShared.Mission.CopClearGangzone
 {
+
+    /// <summary>
+    /// <seealso cref="MissionInfo"/>列表
+    /// </summary>
+    public class MissionsInfo
+    {
+
+        private List<MissionInfo> _MissionsInfo;
+
+        public MissionsInfo()
+        {
+            _MissionsInfo = new List<MissionInfo>();
+        }
+
+        public MissionsInfo(List<MissionInfo> missionsInfo)
+        {
+            _MissionsInfo = missionsInfo;
+        }
+
+        public MissionInfo this[int index]
+        {
+            get => _MissionsInfo[index];
+            set => _MissionsInfo[index] = value;
+        }
+
+        /// <summary>
+        /// 添加新的<seealso cref="MissionInfo"/>到列表尾
+        /// </summary>
+        /// <param name="missionInfo"></param>
+        public void Add(MissionInfo missionInfo)
+        {
+            _MissionsInfo.Add(missionInfo);
+        }
+
+        /// <summary>
+        /// 移除第一个匹配的<seealso cref="MissionInfo"/>
+        /// </summary>
+        /// <param name="missionInfo"></param>
+        public void Remove(MissionInfo missionInfo)
+            => _MissionsInfo.Remove(missionInfo);
+
+        /// <summary>
+        /// 序列化<seealso cref="MissionsInfo"/>
+        /// </summary>
+        /// <returns></returns>
+        public string Serialize()
+            => JsonConvert.SerializeObject(_MissionsInfo);
+
+        /// <summary>
+        /// 序列化指定的<seealso cref="MissionInfo"/>
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public string Serialize(int index)
+            => JsonConvert.SerializeObject(_MissionsInfo[index]);
+
+        /// <summary>
+        /// 反序列化<seealso cref="MissionsInfo"/>
+        /// </summary>
+        /// <param name="missionsInfoJson"></param>
+        /// <returns></returns>
+        public static List<MissionInfo> Deserialize(string missionsInfoJson)
+            => JsonConvert.DeserializeObject<List<MissionInfo>>(missionsInfoJson);
+
+        /// <summary>
+        /// 返回任务列表中的所有<seealso cref="PedHash"/>(unique)
+        /// </summary>
+        /// <returns></returns>
+        public List<PedHash> GetPedsHash()
+            => _MissionsInfo
+               .SelectMany(mi => mi.PedsInfo.Select(pi => pi.PedHash))
+               .Distinct().ToList();
+
+        /// <summary>
+        /// 返回指定任务列表中的<seealso cref="PedHash"/>(unqiue)
+        /// </summary>
+        /// <param name="missionIndex"></param>
+        /// <returns></returns>
+        public List<PedHash> GetPedsHash(int missionIndex)
+            => _MissionsInfo[missionIndex]
+                .PedsInfo.Select(pi => pi.PedHash)
+                .Distinct().ToList();
+
+        /// <summary>
+        /// 返回任务列表中的所有<seealso cref="WeaponHash"/>(unqiue)
+        /// </summary>
+        /// <returns></returns>
+        public List<WeaponHash> GetWeaponsHash() => Enumerable.Union(
+                _MissionsInfo.SelectMany(mi => mi.PlayerWeapons.Select(pw => (WeaponHash)pw.Hash)),
+                _MissionsInfo.SelectMany(mi => mi.PedsInfo.SelectMany(pi => pi.Weapons.Select(wi => (WeaponHash)wi.Hash))))
+            .ToList();
+            
+
+    }
 
     public struct MissionInfo
     {

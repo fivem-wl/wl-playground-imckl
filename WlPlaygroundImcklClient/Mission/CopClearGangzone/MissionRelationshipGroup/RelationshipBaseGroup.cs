@@ -5,9 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 
 using CitizenFX.Core;
+using CitizenFX.Core.Native;
 
 
-namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
+namespace WlPlaygroundImcklClient.Mission.CopClearGangzone.MissionRelationshipGroup
 {
     public enum RelationshipBaseGroup : int
     {
