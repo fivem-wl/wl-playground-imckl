@@ -166,6 +166,12 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
         private void ClientLeaveMission([FromSource]Player source, string reason)
         {
             Debug.WriteLine($"[{ResourceName}]Mission leaved at client: {source.Identifiers["license"]}, reason: {reason}");
+
+            // 如果是完成任务, 则中止所有玩家的任务
+            if (reason == "finish")
+            {
+                StopMission("finish");
+            }
         }
 
         /// <summary>
@@ -184,14 +190,17 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
         private void StopMission(string reason)
         {
             IsMissionRunning = false;
-            if (reason == "timeup")
-            {
-                TriggerClientEvent($"{ResourceName}:LeaveAndDeactivateCurrentMission", reason);
-            }
-            else
-            {
-                TriggerClientEvent($"{ResourceName}:DestroyMission", reason);
-            }
+            TriggerClientEvent($"{ResourceName}:LeaveAndDeactivateCurrentMission", reason);
+            TriggerClientEvent($"{ResourceName}:DestroyMission", reason);
+            Debug.WriteLine($"[{ResourceName}]Stop mission on all clients, reason: {reason}");
+            //if (reason == "timeup")
+            //{
+            //    TriggerClientEvent($"{ResourceName}:LeaveAndDeactivateCurrentMission", reason);
+            //}
+            //else
+            //{
+            //    TriggerClientEvent($"{ResourceName}:DestroyMission", reason);
+            //}
         }
 
         /// <summary>

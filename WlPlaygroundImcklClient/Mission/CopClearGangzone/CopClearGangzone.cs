@@ -93,8 +93,10 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             MissionPedController.GetAllMissionPeds().ForEach(ped =>
             {
                 ped.AttachedBlip?.Delete();
-                ped.IsPersistent = false;
-                ped.MarkAsNoLongerNeeded();
+                ped.Delete();
+                //ped.HealthFloat = 0;
+                //ped.IsPersistent = false;
+                //ped.MarkAsNoLongerNeeded();
             });
             
             RadiusBlip?.Delete();
@@ -209,7 +211,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 
             // 绑定事件
             FatalDamageEvents.OnDeath += OnDeath;
-            FatalDamageEvents.OnPlayerKillPed += OnPlayerKillPed;
+            //FatalDamageEvents.OnPlayerKillPed += OnPlayerKillPed;
 
             // 界面/声音提醒
             var info = MissionInfo.StartNotificationInfo;
@@ -274,9 +276,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         {
             // 调用玩家离开事件
             OnPlayerLeaveMission?.Invoke(reason);
-
-            // (重置)设置任务玩家组别及关系
-            Game.PlayerPed.SetRelationshipGroup(RelationshipBaseGroup.PLAYER);
+           
 
             // 解除通缉状态
             API.SetPlayerWantedLevel(Game.Player.Handle, 0, false);
@@ -287,7 +287,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
 
             // 解除事件绑定
             FatalDamageEvents.OnDeath -= OnDeath;
-            FatalDamageEvents.OnPlayerKillPed -= OnPlayerKillPed;
+            //FatalDamageEvents.OnPlayerKillPed -= OnPlayerKillPed;
 
             IsJoined = false;
         }
@@ -298,14 +298,17 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             Leave("dead");
         }
 
-        private void OnPlayerKillPed(Player attacker, Ped victim, bool isMeleeDamage, uint weaponHashInfo, int damageTypeFlag)
+        /// <summary>
+        /// Check finish state.
+        /// </summary>
+        private void CheckFinishState()
         {
             var missionPeds = MissionPedController.GetAllMissionPeds();
 
             // 任务目标死亡, 隐藏标记红点, 并标记为可回收资源
             missionPeds
-                .Where(ped => ped == victim)
-                .ToList().ForEach(ped => 
+                .Where(ped => ped.IsDead)
+                .ToList().ForEach(ped =>
             {
                 // 隐藏标记红点
                 var blip = ped.AttachedBlip;
@@ -360,6 +363,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             if (IsJoined)
             {
                 RetainJoinState();
+                CheckFinishState();
             }
             else if (IsActivated)
             {
@@ -380,7 +384,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         public const string ResourceName = "CopClearGangzone";
 
         public static MissionsInfo MissionsInfo;
-        public static MissionInstance MissionInstance;
+        private static MissionInstance MissionInstance;
         private HostSelector HostSelector;
         private MissionRemainTimeAsyncer MissionRemainTimeAsyncer = MissionRemainTimeAsyncer.Instance;
         private MissionPedController MissionPedController;
@@ -389,7 +393,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         /// Is mission instance exist
         /// </summary>
         /// <returns></returns>
-        private static bool IsMissionInstraceExists
+        public static bool IsMissionInstraceExists
         { get => MissionInstance?.Exists() ?? false; }
 
         /// <summary>
@@ -436,19 +440,9 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             {
                 MissionInstance.Leave(reason);
                 HintOnLeaveMission(reason);
+                // (重置)设置任务玩家组别及关系
+                Game.PlayerPed.SetRelationshipGroup(RelationshipBaseGroup.PLAYER);
                 await Task.FromResult(0);
-            }
-        }
-
-        /// <summary>
-        /// 离开任务(无提示)
-        /// </summary>
-        /// <param name="reason"></param>
-        private void LeaveCurrentMissionWithoutHint(string reason)
-        {
-            if (IsMissionInstraceExists && MissionInstance.IsJoined)
-            {
-                MissionInstance.Leave(reason);
             }
         }
 
@@ -468,11 +462,12 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
                     break;
                 case "dead":
                 case "timeup":
-                case "delete":
-                default:
                     AudioPlayer.Play(AudioName.Wasted);
                     await ScaleformDrawer.DrawCenterBar(API.GetLabelText("REPLAY_T"), "~y~评分: 0~s~");
                     Subtitle.Draw("", 1000);
+                    break;
+                case "delete":
+                default:
                     break;
             }
 
@@ -602,7 +597,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         {
             if (IsMissionInstraceExists)
             {
-                LeaveCurrentMissionWithoutHint(reason);
+                await LeaveCurrentMission(reason);
                 DeactivateCurrentMission();
 
                 MissionInstance.Delete();

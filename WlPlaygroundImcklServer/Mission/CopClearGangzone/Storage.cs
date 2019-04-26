@@ -22,106 +22,124 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
                 Duration = 1000 * 60 * 15,
                 PedsInfo = new List<MissionPedInfo>()
                     {
-                        //new MissionPedInfo()
-                        //{
-                        //    PedHash = PedHash.RsRanger01AMO,
-                        //    Accuracy = 20,
-                        //    Health = 1000,
-                        //    Position = new Vector3(-436f, 1128f, 332f),
-                        //    IsHeadshotImmute = true,
-                        //    IsWanderAround = true,
-                        //    WanderRange = 10f,
-                        //    Weapons = new List<MissionWeaponInfo>()
-                        //    {
-                        //        new MissionWeaponInfo()
-                        //        {
-                        //            Hash = (uint)WeaponHash.GrenadeLauncher,
-                        //            Ammo = 300,
-                        //        },
-                        //    }
-                        //},
-                        //new MissionPedInfo()
-                        //{
-                        //    PedHash = PedHash.JohnnyKlebitz,
-                        //    Accuracy = 100,
-                        //    Health = 1000,
-                        //    Position = new Vector3(-436f, 1128f, 332f),
-                        //    IsHeadshotImmute = true,
-                        //    IsWanderAround = true,
-                        //    WanderRange = 10f,
-                        //    Weapons = new List<MissionWeaponInfo>()
-                        //    {
-                        //        new MissionWeaponInfo()
-                        //        {
-                        //            Hash = (uint)WeaponHash.SniperRifle,
-                        //            Ammo = 300,
-                        //        },
-                        //    }
-                        //},
-                        
-                        //new MissionPedInfo()
-                        //{
-                        //    PedHash = PedHash.JohnnyKlebitz,
-                        //    Accuracy = 100,
-                        //    Health = 1000,
-                        //    Position = new Vector3(-420f, 1108f, 332f),
-                        //    IsHeadshotImmute = true,
-                        //    IsWanderAround = true,
-                        //    WanderRange = 10f,
-                        //    Weapons = new List<MissionWeaponInfo>()
-                        //    {
-                        //        new MissionWeaponInfo()
-                        //        {
-                        //            Hash = (uint)WeaponHash.SniperRifle,
-                        //            Ammo = 300,
-                        //        },
-                        //    }
-                        //},
+                        new MissionPedInfo()
+                        {
+                            PedHash = PedHash.RsRanger01AMO,
+                            Accuracy = 20,
+                            Health = 1500,
+                            Position = new Vector3(-436f, 1128f, 332f),
+                            IsHeadshotImmute = true,
+                            IsWanderAround = true,
+                            WanderRange = 10f,
+                            Weapons = new List<MissionWeaponInfo>()
+                            {
+                                new MissionWeaponInfo()
+                                {
+                                    Hash = (uint)WeaponHash.GrenadeLauncher,
+                                    Ammo = 300,
+                                },
+                            }
+                        },
+                        new MissionPedInfo()
+                        {
+                            PedHash = PedHash.JohnnyKlebitz,
+                            Accuracy = 100,
+                            Health = 800,
+                            Position = new Vector3(-436f, 1128f, 332f),
+                            IsHeadshotImmute = true,
+                            IsWanderAround = true,
+                            WanderRange = 10f,
+                            Weapons = new List<MissionWeaponInfo>()
+                            {
+                                new MissionWeaponInfo()
+                                {
+                                    Hash = (uint)WeaponHash.SniperRifle,
+                                    Ammo = 300,
+                                },
+                            }
+                        },
 
-                        //new MissionPedInfo()
-                        //{
-                        //    PedHash = PedHash.Mani,
-                        //    Accuracy = 100,
-                        //    Health = 1000,
-                        //    Position = new Vector3(-432f, 1102f, 340f),
-                        //    IsHeadshotImmute = true,
-                        //    IsWanderAround = true,
-                        //    WanderRange = 10f,
-                        //    Weapons = new List<MissionWeaponInfo>()
-                        //    {
-                        //        new MissionWeaponInfo()
-                        //        {
-                        //            Hash = (uint)WeaponHash.RPG,
-                        //            Ammo = 300,
-                        //        },
-                        //    }
-                        //},
+                        new MissionPedInfo()
+                        {
+                            PedHash = PedHash.JohnnyKlebitz,
+                            Accuracy = 100,
+                            Health = 800,
+                            Position = new Vector3(-420f, 1108f, 332f),
+                            IsHeadshotImmute = true,
+                            IsWanderAround = true,
+                            WanderRange = 10f,
+                            Weapons = new List<MissionWeaponInfo>()
+                            {
+                                new MissionWeaponInfo()
+                                {
+                                    Hash = (uint)WeaponHash.SniperRifle,
+                                    Ammo = 300,
+                                },
+                            }
+                        },
 
-                        //new MissionPedInfo()
-                        //{
-                        //    PedHash = PedHash.Orleans,
-                        //    Accuracy = 100,
-                        //    Health = 2000,
-                        //    Position = new Vector3(-439f, 1074f, 353f),
-                        //    IsHeadshotImmute = true,
-                        //    IsWanderAround = true,
-                        //    WanderRange = 10f,
-                        //    Weapons = new List<MissionWeaponInfo>()
-                        //    {
-                        //        new MissionWeaponInfo()
-                        //        {
-                        //            Hash = (uint)WeaponHash.RPG,
-                        //            Ammo = 300,
-                        //        },
-                        //    }
-                        //},
+                        new MissionPedInfo()
+                        {
+                            PedHash = PedHash.Mani,
+                            Accuracy = 100,
+                            Health = 1200,
+                            Position = new Vector3(-432f, 1102f, 340f),
+                            IsHeadshotImmute = true,
+                            IsWanderAround = true,
+                            WanderRange = 10f,
+                            Weapons = new List<MissionWeaponInfo>()
+                            {
+                                new MissionWeaponInfo()
+                                {
+                                    Hash = (uint)WeaponHash.RPG,
+                                    Ammo = 300,
+                                },
+                            }
+                        },
+
+                        new MissionPedInfo()
+                        {
+                            PedHash = PedHash.Orleans,
+                            Accuracy = 100,
+                            Health = 1500,
+                            Position = new Vector3(-439f, 1074f, 353f),
+                            IsHeadshotImmute = true,
+                            IsWanderAround = true,
+                            WanderRange = 10f,
+                            Weapons = new List<MissionWeaponInfo>()
+                            {
+                                new MissionWeaponInfo()
+                                {
+                                    Hash = (uint)WeaponHash.RPG,
+                                    Ammo = 300,
+                                },
+                            }
+                        },
+                        new MissionPedInfo()
+                        {
+                            PedHash = PedHash.Orleans,
+                            Accuracy = 100,
+                            Health = 1500,
+                            Position = new Vector3(-439f, 1074f, 353f),
+                            IsHeadshotImmute = true,
+                            IsWanderAround = true,
+                            WanderRange = 10f,
+                            Weapons = new List<MissionWeaponInfo>()
+                            {
+                                new MissionWeaponInfo()
+                                {
+                                    Hash = (uint)WeaponHash.RPG,
+                                    Ammo = 300,
+                                },
+                            }
+                        },
 
                         // footman
                         new MissionPedInfo()
                         {
                             PedHash = PedHash.PestContGunman,
                             Accuracy = 20,
-                            Health = 500,
+                            Health = 800,
                             Position = new Vector3(-418.77f, 1147.17f, 325.86f),
                             IsHeadshotImmute = true,
                             IsWanderAround = true,
@@ -137,9 +155,9 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
                         },
                         new MissionPedInfo()
                         {
-                            PedHash = PedHash.Hooker01SFY,
+                            PedHash = PedHash.PestContGunman,
                             Accuracy = 20,
-                            Health = 500,
+                            Health = 800,
                             Position = new Vector3(-418.77f, 1147.17f, 325.86f),
                             IsHeadshotImmute = true,
                             IsWanderAround = true,
@@ -153,48 +171,47 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
                                 },
                             }
                         },
-                        //new MissionPedInfo()
-                        //{
-                        //    PedHash = PedHash.PestContGunman,
-                        //    Accuracy = 20,
-                        //    Health = 500,
-                        //    Position = new Vector3(-418.77f, 1147.17f, 325.86f),
-                        //    IsHeadshotImmute = true,
-                        //    IsWanderAround = true,
-                        //    WanderRange = 10f,
-                        //    Weapons = new List<MissionWeaponInfo>()
-                        //    {
-                        //        new MissionWeaponInfo()
-                        //        {
-                        //            Hash = (uint)WeaponHash.CarbineRifleMk2,
-                        //            Ammo = 300,
-                        //        },
-                        //    }
-                        //},
-                        //new MissionPedInfo()
-                        //{
-                        //    PedHash = PedHash.PestContGunman,
-                        //    Accuracy = 20,
-                        //    Health = 500,
-                        //    Position = new Vector3(-418.77f, 1147.17f, 325.86f),
-                        //    IsHeadshotImmute = true,
-                        //    IsWanderAround = true,
-                        //    WanderRange = 10f,
-                        //    Weapons = new List<MissionWeaponInfo>()
-                        //    {
-                        //        new MissionWeaponInfo()
-                        //        {
-                        //            Hash = (uint)WeaponHash.CarbineRifleMk2,
-                        //            Ammo = 300,
-                        //        },
-                        //    }
-                        //},
-                        //PestContGunman - gunman
+                        new MissionPedInfo()
+                        {
+                            PedHash = PedHash.PestContGunman,
+                            Accuracy = 20,
+                            Health = 800,
+                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
+                            IsHeadshotImmute = true,
+                            IsWanderAround = true,
+                            WanderRange = 10f,
+                            Weapons = new List<MissionWeaponInfo>()
+                            {
+                                new MissionWeaponInfo()
+                                {
+                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
+                                    Ammo = 300,
+                                },
+                            }
+                        },
+                        new MissionPedInfo()
+                        {
+                            PedHash = PedHash.PestContGunman,
+                            Accuracy = 20,
+                            Health = 800,
+                            Position = new Vector3(-418.77f, 1147.17f, 325.86f),
+                            IsHeadshotImmute = true,
+                            IsWanderAround = true,
+                            WanderRange = 10f,
+                            Weapons = new List<MissionWeaponInfo>()
+                            {
+                                new MissionWeaponInfo()
+                                {
+                                    Hash = (uint)WeaponHash.CarbineRifleMk2,
+                                    Ammo = 300,
+                                },
+                            }
+                        },
                     },
                 RangeInfo = new MissionRangeInfo()
                 {
                     Position = new Vector3(-418.77f, 1147.17f, 325.86f),
-                    Radius = 500f,
+                    Radius = 200f,
                 },
                 PlayerWeapons = new List<MissionWeaponInfo>()
                     {

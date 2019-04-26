@@ -51,17 +51,8 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone.MissionPed
                     // 属于任务敌人
                     if (ped.HasDecor(DecorIsMissionPed) && ped.HasDecor(DecorMissionInfoIndex) && ped.HasDecor(DecorMissionPedInfoIndex))
                     {
-                        // 仅当实例存在时处理
-                        if (!(CopClearGangzone.MissionInstance is null) && CopClearGangzone.MissionInstance.Exists())
-                        {
-                            ActivatePedDetailOnlyOnce(ped);
-                            ResetPedPositionWhenOutOfBoundary(ped);
-                        }
-                        // 否则, 如果实例不存在或为null, 则删除所有可能延后产生的ped
-                        else
-                        {
-                            ped.Delete();
-                        }
+                        ActivatePedDetailOnlyOnce(ped);
+                        ResetPedPositionWhenOutOfBoundary(ped);
                     }
                 }
             }
@@ -110,6 +101,8 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone.MissionPed
             {
                 if (ped.HasDecor(DecorIsMissionPed) && ped.HasDecor(DecorMissionInfoIndex) && ped.HasDecor(DecorMissionPedInfoIndex))
                 {
+                    Debug.WriteLine($"Setting ped {ped.Handle}, {ped.IsInvincible}");
+                    
                     var missionInfoIndex = ped.GetDecor<int>(DecorMissionInfoIndex);
                     var missionPedInfoIndex = ped.GetDecor<int>(DecorMissionPedInfoIndex);
                     var pedInfo = CopClearGangzone.MissionsInfo[missionInfoIndex].PedsInfo[missionPedInfoIndex];
