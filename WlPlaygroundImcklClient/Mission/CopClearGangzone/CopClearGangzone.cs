@@ -386,12 +386,19 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         private MissionPedController MissionPedController;
 
         /// <summary>
+        /// Is mission instance exist
+        /// </summary>
+        /// <returns></returns>
+        private static bool IsMissionInstraceExists
+        { get => MissionInstance?.Exists() ?? false; }
+
+        /// <summary>
         /// 加入当前任务
         /// </summary>
         /// <returns></returns>
         private static async Task<bool> JoinCurrentMission()
         {
-            if (MissionInstance?.Exists() ?? false)
+            if (IsMissionInstraceExists)
             {
                 if (!MissionInstance.IsJoined)
                 {
@@ -425,7 +432,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         /// <param name="reason"></param>
         private async Task LeaveCurrentMission(string reason)
         {
-            if (!(MissionInstance is null) && MissionInstance.IsJoined)
+            if (IsMissionInstraceExists && MissionInstance.IsJoined)
             {
                 MissionInstance.Leave(reason);
                 HintOnLeaveMission(reason);
@@ -439,10 +446,9 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         /// <param name="reason"></param>
         private void LeaveCurrentMissionWithoutHint(string reason)
         {
-            if (!(MissionInstance is null) && MissionInstance.IsJoined)
+            if (IsMissionInstraceExists && MissionInstance.IsJoined)
             {
                 MissionInstance.Leave(reason);
-                HintOnLeaveMission(reason);
             }
         }
 
@@ -486,6 +492,13 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             ActivateCurrentMission();
         }
 
+        
+        private async Task LeaveAndDeactivateCurrentMission(string reason)
+        {
+            await LeaveCurrentMission(reason);
+            DeactivateCurrentMission();
+        }
+
         /// <summary>
         /// 创建任务
         /// </summary>
@@ -501,7 +514,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         /// <param name="missionInfoIndex"></param>
         public void ActivateCurrentMission()
         {
-            if (!MissionInstance.IsActivated)
+            if (IsMissionInstraceExists && !MissionInstance.IsActivated)
             {
                 Tick += MissionInstance.EveryFrameTick;
                 Tick += MissionInstance.TolerantTick;
@@ -517,12 +530,16 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         /// </summary>
         private void DeactivateCurrentMission()
         {
-            Tick -= MissionInstance.EveryFrameTick;
-            Tick -= MissionInstance.TolerantTick;
+            if (IsMissionInstraceExists && MissionInstance.IsActivated)
+            {
+                Tick -= MissionInstance.EveryFrameTick;
+                Tick -= MissionInstance.TolerantTick;
 
-            MissionInstance.OnPlayerLeaveMission -= HintOnLeaveMission;
+                MissionInstance.OnPlayerLeaveMission -= HintOnLeaveMission;
 
-            MissionInstance.Deactivate();
+                MissionInstance.Deactivate();
+            }
+            
         }
 
         /// <summary>
@@ -583,7 +600,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         /// </summary>
         private async Task DestroyMission(string reason)
         {
-            if (!(MissionInstance is null))
+            if (IsMissionInstraceExists)
             {
                 LeaveCurrentMissionWithoutHint(reason);
                 DeactivateCurrentMission();
@@ -641,7 +658,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
         /// <returns></returns>
         private async Task BroadcastMission(int missionInfoIndex)
         {
-            if (MissionInstance is null)
+            if (!IsMissionInstraceExists)
                 return;
 
             // 不对任务进行中的玩家进行广播
@@ -663,7 +680,7 @@ namespace WlPlaygroundImcklClient.Mission.CopClearGangzone
             EventHandlers.Add($"{ResourceName}:LoadAll", new Func<string, Task>(LoadAll));
             EventHandlers.Add($"{ResourceName}:TryCreateMissionAsHost", new Func<int, Task<bool>>(TryCreateMissionAsHost));
             EventHandlers.Add($"{ResourceName}:CreateAndActivateMission", new Action<int>(CreateAndActivateMission));
-            EventHandlers.Add($"{ResourceName}:LeaveCurrentMission", new Func<string, Task>(LeaveCurrentMission));
+            EventHandlers.Add($"{ResourceName}:LeaveAndDeactivateCurrentMission", new Func<string, Task>(LeaveAndDeactivateCurrentMission));
             EventHandlers.Add($"{ResourceName}:DestroyMission", new Func<string, Task>(DestroyMission));
             EventHandlers.Add($"{ResourceName}:BroadcastMission", new Func<int, Task>(BroadcastMission));
             

@@ -186,7 +186,7 @@ namespace WlPlaygroundImcklServer.Mission.CopClearGangzone
             IsMissionRunning = false;
             if (reason == "timeup")
             {
-                TriggerClientEvent($"{ResourceName}:LeaveCurrentMission", reason);
+                TriggerClientEvent($"{ResourceName}:LeaveAndDeactivateCurrentMission", reason);
             }
             else
             {
