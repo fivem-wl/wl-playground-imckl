@@ -17,8 +17,8 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <OutputPath>..\bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;CLIENT</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <LangVersion>latest</LangVersion>
@@ -41,6 +41,12 @@
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\Lib\Shared\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="PumaClient, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\Lib\Client\PumaFramework\PumaClient.dll</HintPath>
+    </Reference>
+    <Reference Include="PumaCore, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\Lib\Client\PumaFramework\PumaCore.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -70,12 +76,12 @@
     <Compile Include="Mission\CopClearGangzone\MissionPed\PedType.cs" />
     <Compile Include="Mission\CopClearGangzone\MissionGUI\ScaleformDrawer.cs" />
     <Compile Include="Mission\CopClearGangzone\MissionGUI\Subtitle.cs" />
+    <Compile Include="Mission\CopClearGangzone\WeaponInfoHash.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="..\WlPlaygroundImcklShared\WlPlaygroundImcklShared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
